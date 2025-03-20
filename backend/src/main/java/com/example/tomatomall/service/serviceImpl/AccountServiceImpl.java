@@ -25,6 +25,7 @@ public class AccountServiceImpl implements AccountService {
         }
         // 密码加密存储
         account.setPassword(bCryptPasswordEncoder.encode(account.getPassword()));
+        account.setRole(2);
         accountRepository.save(account);
         return Response.buildSuccess("创建用户成功");
     }
@@ -66,16 +67,25 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Response<String> login(String username, String password) {
-        Account account = accountRepository.findByUsername(username);
-        if (account == null) {
-            return Response.buildFailure("用户不存在/用户密码错误", "400"); // 错误信息笼统一点更安全
+    public Response<String> login(String account, String password) {
+        if (account == null || password == null) {
+            return Response.buildFailure("账号或密码不能为空", "400");
         }
-        // 校验密码
-        if (bCryptPasswordEncoder.matches(password, account.getPassword())) {
-            return Response.buildSuccess("登录成功");
+        Account userAccount = null;
+        // 判断输入的是手机号还是用户名
+        if (account.matches("^1\\d{10}$")) {
+            userAccount = accountRepository.findByTelephone(account);
         } else {
+            userAccount = accountRepository.findByUsername(account);
+        }
+        // 先检查用户是否存在
+        if (userAccount == null) {
             return Response.buildFailure("用户不存在/用户密码错误", "400");
         }
+        // 校验密码 - 使用BCrypt对输入的密码和数据库中存储的加密密码进行比对
+        if (!bCryptPasswordEncoder.matches(password, userAccount.getPassword())) {
+            return Response.buildFailure("用户不存在/用户密码错误", "400");
+        }
+        return Response.buildSuccess("登录成功");
     }
 }

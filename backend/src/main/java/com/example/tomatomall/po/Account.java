@@ -43,4 +43,8 @@ public class Account {
 
     @Column(length = 255)
     private String location;
+
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 2") // Set default value
+    private Integer role;
+    // 1.管理员 2.用户 3.商家
 }
