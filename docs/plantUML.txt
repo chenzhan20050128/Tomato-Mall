@@ -1,0 +1,73 @@
+@startuml
+!pragma teoz true ' Enable Unicode Support
+
+' ==== Color Theme ====
+skinparam backgroundColor #F8F8FF
+skinparam actorBorderColor #4682B4
+skinparam actorFontColor #4682B4
+skinparam useCaseBorderColor #2E8B57
+skinparam useCaseFontColor #2E8B57
+skinparam arrowColor #A9A9A9
+skinparam noteBackgroundColor #FFFFE0
+skinparam noteBorderColor #BDB76B
+
+' ==== Actors ====
+actor "顾客\n(Customer)" as Customer
+actor "管理员\n(Admin)" as Admin
+
+' ==== System Boundary ====
+rectangle "番茄商城\n(Tomato Mall)" {
+
+' ==== Use Cases - Customer ====
+package "用户交互" {
+usecase "登录" as Login
+usecase "注册" as Register
+usecase "查看个人信息" as ViewProfile
+usecase "修改个人信息" as EditProfile
+}
+
+package "浏览与购买" {
+usecase "获取所有货物信息" as GetAllProducts
+usecase "获取指定货物信息" as GetProductDetails
+usecase "提交交易结算单" as SubmitOrder
+usecase "获取全部广告" as GetAllAds
+note right of GetAllProducts : 提供商品列表，可排序和筛选。
+note right of GetProductDetails : 显示商品详情，包括图片和评价。
+}
+
+' ==== Use Cases - Admin ====
+package "管理维护" {
+usecase "创建新的产品" as CreateProduct
+usecase "更新产品信息" as UpdateProduct
+usecase "删除产品" as DeleteProduct
+usecase "调整产品库存" as AdjustInventory
+usecase "查看订单" as ViewOrders
+usecase "管理用户账户" as ManageUsers
+usecase "修改支付单据状态" as UpdatePaymentStatus
+note left of UpdatePaymentStatus : 更改订单的支付状态
+}
+
+' Moved Admin use cases to be horizontally aligned to User Interaction Package
+Login -[hidden]d- CreateProduct
+}
+
+' ==== Relationships ====
+Customer -- Login
+Customer -- Register
+Customer -- ViewProfile
+Customer -- EditProfile
+Customer -- GetAllProducts
+Customer -- GetProductDetails
+Customer -- SubmitOrder
+Customer -- GetAllAds
+
+Admin -- CreateProduct
+Admin -- UpdateProduct
+Admin -- DeleteProduct
+Admin -- AdjustInventory
+Admin -- ViewOrders
+Admin -- ManageUsers
+Admin -- UpdatePaymentStatus
+
+
+@enduml
