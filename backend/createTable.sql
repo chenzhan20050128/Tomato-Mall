@@ -140,3 +140,12 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     'Melbourne',
     2
 );
+
+
+-- 插入示例数据
+INSERT INTO products (id, description, image, is_available, name, price, stock) VALUES
+                                                                               (1, 'Apple最新旗舰手机，搭载A17芯片', 'https://example.com/iphone15.jpg', 1, 'iPhone 15', 6999.00, 100),
+                                                                               (2, '14英寸MacBook Pro，M2芯片', 'https://example.com/macbook.jpg', 1, 'MacBook Pro', 12999.00, 50),
+                                                                               (3, '主动降噪，空间音频', 'https://example.com/airpods.jpg', 1, 'AirPods Pro', 1999.00, 200),
+                                                                               (4, '10.9英寸视网膜显示屏', 'https://example.com/ipad.jpg', 1, 'iPad Air', 4799.00, 80),
+                                                                               (5, 'Series 9，健康监测', 'https://example.com/watch.jpg', 1, 'Apple Watch', 3299.00, 150);
