@@ -7,7 +7,7 @@ CREATE TABLE users (
     telephone VARCHAR(11) UNIQUE COMMENT '用户手机号，格式需符合1开头的11位数字', 
     email VARCHAR(100) COMMENT '用户邮箱，格式需符合邮箱规范',
     location VARCHAR(255) COMMENT '用户所在地',
-    role INT NOT NULL DEFAULT 2 COMMENT '用户角色：1-管理员，2-用户，3-商家',
+    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家',
     PRIMARY KEY (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
@@ -30,7 +30,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13312345678', -- 手机号（符合 1 开头的 11 位数字格式）
     'john.doe1@example.com', -- 邮箱（符合邮箱格式）
     'New York', -- 所在地
-    2 -- 角色：2-用户
+    'user' -- 角色：2-用户
 );
 
 -- 插入第二条用户信息
@@ -42,7 +42,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13291770128',
     'jane.smith2@example.com',
     'London',
-    2
+    'user'
 );
 
 -- 插入第三条用户信息
@@ -54,7 +54,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '12312345678',
     'peter.jones3@example.com',
     'Paris',
-    1
+    'admin'
 );
 
 -- 插入第四条用户信息
@@ -66,7 +66,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13300000001',
     'mary.brown4@example.com',
     'Tokyo',
-    2
+    'uesr'
 );
 
 -- 插入第五条用户信息
@@ -78,7 +78,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13544444445',
     'david.wilson5@example.com',
     'Sydney',
-    2
+    'user'
 );
 
 -- 插入第六条用户信息
@@ -90,7 +90,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13455555556',
     'sarah.miller6@example.com',
     'Berlin',
-    2
+    'user'
 );
 
 -- 插入第七条用户信息
@@ -102,7 +102,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13366666667',
     'kevin.anderson7@example.com',
     'Rome',
-    3
+    'merchant'
 );
 
 -- 插入第八条用户信息
@@ -114,7 +114,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13277777778',
     'laura.thomas8@example.com',
     'Madrid',
-    2
+    'user'
 );
 
 -- 插入第九条用户信息
@@ -126,7 +126,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13188888889',
     'chris.jackson9@example.com',
     'Toronto',
-    2
+    'user'
 );
 
 -- 插入第十条用户信息
@@ -138,7 +138,7 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
     '13099999990',
     'amanda.white10@example.com',
     'Melbourne',
-    2
+    'user'
 );
 
 

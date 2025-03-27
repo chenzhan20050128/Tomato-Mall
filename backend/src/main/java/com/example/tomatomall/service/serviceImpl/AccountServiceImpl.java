@@ -1,8 +1,10 @@
 package com.example.tomatomall.service.serviceImpl;
 
+import com.example.tomatomall.constant.RoleConstant;
 import com.example.tomatomall.dao.AccountRepository;
 import com.example.tomatomall.po.Account;
 import com.example.tomatomall.service.AccountService;
+import com.example.tomatomall.util.JwtUtil;
 import com.example.tomatomall.vo.Response;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,18 +18,27 @@ public class AccountServiceImpl implements AccountService {
     private AccountRepository accountRepository;
 
     @Resource
-    private BCryptPasswordEncoder bCryptPasswordEncoder; // Spring Security 提供的密码加密工具
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Resource
+    private JwtUtil jwtUtil;
 
     @Override
     public Response<String> createUser(Account account) {
         if (accountRepository.findByUsername(account.getUsername()) != null) {
             return Response.buildFailure("用户名已存在", "400");
         }
+
         // 密码加密存储
         account.setPassword(bCryptPasswordEncoder.encode(account.getPassword()));
-        account.setRole(2);
+
+        // 确保有默认角色
+        if (account.getRole() == null || account.getRole().trim().isEmpty()) {
+            account.setRole(RoleConstant.USER); // 默认为普通用户
+        }
+
         accountRepository.save(account);
-        return Response.buildSuccess("创建用户成功");
+        return Response.buildSuccess("注册成功");
     }
 
     @Override
@@ -62,8 +73,14 @@ public class AccountServiceImpl implements AccountService {
         if (account.getLocation() != null) {
             existingAccount.setLocation(account.getLocation());
         }
+        if (account.getPassword() != null && !account.getPassword().isEmpty()) {
+            existingAccount.setPassword(bCryptPasswordEncoder.encode(account.getPassword()));
+        }
+        if (account.getRole() != null) {
+            existingAccount.setRole(account.getRole());
+        }
         accountRepository.save(existingAccount);
-        return Response.buildSuccess("用户信息更新成功");
+        return Response.buildSuccess("更新成功");
     }
 
     @Override
@@ -86,6 +103,8 @@ public class AccountServiceImpl implements AccountService {
         if (!bCryptPasswordEncoder.matches(password, userAccount.getPassword())) {
             return Response.buildFailure("用户不存在/用户密码错误", "400");
         }
-        return Response.buildSuccess("登录成功");
+        // 生成JWT令牌 cz0327 21:54
+        String token = jwtUtil.generateToken(userAccount.getUsername());
+        return Response.buildSuccess(token);
     }
 }

@@ -6,6 +6,7 @@ import com.example.tomatomall.vo.Response;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 @RestController
@@ -43,7 +44,14 @@ public class AccountController {
      * 登录
      */
     @PostMapping("/login")
-    public Response<String> login(@RequestBody Account account) {
-        return accountService.login(account.getUsername(), account.getPassword());
+    public Response<String> login(@RequestBody Account account, HttpServletResponse response) {
+        Response<String> loginResult = accountService.login(account.getUsername(), account.getPassword());
+
+        // 如果登录成功，在响应头中设置token
+        if ("200".equals(loginResult.getCode()) && loginResult.getData() != null) {
+            response.addHeader("token", loginResult.getData());
+        }
+
+        return loginResult;
     }
 }
