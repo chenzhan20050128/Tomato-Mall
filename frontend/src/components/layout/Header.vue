@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, inject } from 'vue'
+import { ref, watch, inject, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
@@ -9,6 +9,7 @@ const route = useRoute()
 
 // 使用 ref 控制登录状态
 const isLoggedIn = ref(false)
+const username = ref('')
 
 const isMenuOpen = ref(false)
 // 窗口监听
@@ -18,10 +19,10 @@ const viewport = inject('viewport', {
   breakpoints: { md: 768 }
 })
 
-// 功能栏 - 修改为适合您项目的导航项
+// 功能栏 - 修改为适合项目的导航项
 const funcs = [
   { icon: House, title: '首页', path: '/home' },
-  { icon: ShoppingCart, title: '书籍商城', path: '/books' }
+  { icon: ShoppingCart, title: '图书商城', path: '/books' }
 ]
 
 const currentPath = ref(route.path)
@@ -38,10 +39,15 @@ watch(
 // 检查登录状态
 const checkLoginStatus = () => {
   const token = sessionStorage.getItem('token')
+  const storedUsername = sessionStorage.getItem('username')
   isLoggedIn.value = !!token
+  username.value = storedUsername || ''
 }
-// 初始化登录状态
-checkLoginStatus()
+
+// 初始化时检查登录状态
+onMounted(() => {
+  checkLoginStatus()
+})
 
 // 登出处理
 const handleLogout = () => {
@@ -49,22 +55,17 @@ const handleLogout = () => {
     '是否要退出登录？',
     '提示',
     {
-      customClass: "customDialog",
-      confirmButtonText: '是',
-      cancelButtonText: '否',
-      type: "warning",
-      showClose: false,
-      roundButton: true,
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
       center: true
     }
   ).then(() => {
     sessionStorage.removeItem('token')
     sessionStorage.removeItem('username')
-    sessionStorage.removeItem('role')
-    sessionStorage.removeItem('userId')
     isLoggedIn.value = false
-    router.push({ path: "/login" })
-  })
+    router.push('/login')
+  }).catch(() => {})
 }
 </script>
 
@@ -73,17 +74,17 @@ const handleLogout = () => {
     <el-affix>
       <el-menu class="custom-header" mode="horizontal" :ellipsis="false" router :default-active="currentPath">
         <!-- 品牌区域 -->
-        <div class="brand-area">
-          <h1 class="brand-title" @click="router.push('/home')">番茄读书</h1>
+        <div class="brand-area" @click="router.push('/home')">
+          <h1 class="brand-title">番茄读书</h1>
         </div>
         
-        <!-- 功能区 -->
-        <div v-if="viewport.isMobile.value" class="nav-group">
+        <!-- 功能区 - 移动端下拉菜单 -->
+        <div v-if="viewport.isMobile" class="nav-group">
           <el-menu-item index="">
-            <el-dropdown trigger="click" @visible-change="(v: boolean) => isMenuOpen = v">
+            <el-dropdown trigger="click" @visible-change="(v) => isMenuOpen = v">
               <div class="header-item">
                 <el-icon>
-                  <component :is="isMenuOpen ? ArrowDown : ArrowRight " />
+                  <component :is="isMenuOpen ? ArrowDown : ArrowRight" />
                 </el-icon>
                 <span>功能菜单</span>
               </div>
@@ -101,6 +102,7 @@ const handleLogout = () => {
           </el-menu-item>
         </div>
 
+        <!-- 功能区 - 桌面导航 -->
         <div v-else class="nav-group">
           <el-menu-item v-for="(item, index) in funcs" :key="index" :index="item.path">
             <el-icon>
@@ -132,9 +134,9 @@ const handleLogout = () => {
               <el-icon>
                 <UserFilled />
               </el-icon>
-              <span>个人信息</span>
+              <span>{{ username }}</span>
             </el-menu-item>
-            <el-menu-item @click="handleLogout" style="color: var(--el-color-danger);">
+            <el-menu-item @click="handleLogout">
               <el-icon>
                 <SwitchButton />
               </el-icon>
@@ -150,26 +152,28 @@ const handleLogout = () => {
 <style scoped>
 .el-header {
   --el-header-padding: 0;
-  --el-header-height: 3.5rem;
+  --el-header-height: 60px;
+  padding: 0;
 }
 
 .custom-header {
   height: var(--el-header-height);
   display: flex;
   justify-content: space-between;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .brand-area {
   display: flex;
   align-items: center;
   margin-right: 20px;
+  cursor: pointer;
 }
 
 .brand-title {
   color: #e74c3c;
   margin: 0;
   font-size: 1.5rem;
-  cursor: pointer;
   padding: 0 16px;
 }
 
@@ -190,20 +194,20 @@ const handleLogout = () => {
   color: var(--el-menu-text-color);
   transition: all 0.2s;
   padding: 0 4px;
-  
-  &:hover {
-    color: var(--el-menu-hover-text-color);
-    background-color: var(--el-menu-hover-bg-color);
-  }
-  
-  .el-icon {
-    margin-right: 4px;
-    font-size: 18px;
-  }
-  
-  span {
-    font-size: 14px;
-  }
+}
+
+.header-item:hover {
+  color: var(--el-menu-hover-text-color);
+  background-color: var(--el-menu-hover-bg-color);
+}
+
+.header-item .el-icon {
+  margin-right: 4px;
+  font-size: 18px;
+}
+
+.header-item span {
+  font-size: 14px;
 }
 
 :deep(.el-dropdown-menu__item) {
@@ -212,10 +216,10 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   padding: 12px 20px;
+}
 
-  &:hover {
-    color: var(--el-color-primary);
-    background: var(--el-color-primary-light-9);
-  }
+:deep(.el-dropdown-menu__item):hover {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
 }
 </style>

@@ -25,7 +25,7 @@ const isPhoneValid = computed(() => phoneRegex.test(phone.value))
 
 const loginDisabled = computed(() => {
   return !(hasPhoneInput.value && hasPasswordInput.value && 
-    hasCaptchaInput.value && isPhoneValid.value)
+    hasCaptchaInput.value)
 })
 
 // 从前端获取验证码
@@ -50,15 +50,19 @@ const handleLogin = async () => {
   }
 
   userLogin({
-    phone: phone.value,
+    username: phone.value,
     password: password.value
   }).then(res => {
-    if (res.data.code === '000') {
+    if (res.data.code === '200') {
       // 保存用户信息和token
-      sessionStorage.setItem('token', res.data.result.token)
-      sessionStorage.setItem('username', res.data.result.username)
-      sessionStorage.setItem('userId', res.data.result.userId)
-      sessionStorage.setItem('role', res.data.result.role)
+      sessionStorage.setItem('token', res.data.data) // 注意：后端返回的是直接的token字符串
+      sessionStorage.setItem('username', phone.value) // 使用用户输入的手机号作为用户名
+
+      // 可根据需要保存其他信息
+      // 如果后端在登录响应中返回了用户角色，也应保存
+      if (res.data.role) {
+        sessionStorage.setItem('role', res.data.role)
+      }
       
       ElMessage({
         message: "登录成功",
@@ -66,17 +70,8 @@ const handleLogin = async () => {
         center: true,
       })
       
-      // 根据角色导航到不同页面
-      const role = res.data.result.role
-      if (role === '1') {
-        router.push('/admin')
-      } else if (role === '2') {
-        router.push('/home')
-      } else if (role === '3') {
-        router.push('/merchant')
-      } else {
-        router.push('/home')
-      }
+      // 所有用户统一跳转到个人资料页面
+      router.push('/profile')
     } else {
       ElMessage({
         message: res.data.msg || "登录失败，请检查账号密码",
