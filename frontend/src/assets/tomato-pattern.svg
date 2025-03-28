@@ -1,0 +1,34 @@
+<!-- filepath: src/assets/tomato-pattern.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <!-- 大番茄 -->
+  <g id="tomato-large">
+    <!-- 番茄主体 -->
+    <circle cx="150" cy="170" r="90" fill="#e74c3c" opacity="0.15"/>
+    <!-- 番茄茎和叶子 -->
+    <path d="M150 80c0 0-30 10-30 40 0 20 15 15 30 0 15 15 30 20 30 0 0-30-30-40-30-40z" fill="#2ecc71" opacity="0.12"/>
+  </g>
+  
+  <!-- 小番茄 -->
+  <g id="tomato-small">
+    <circle cx="60" cy="100" r="40" fill="#e74c3c" opacity="0.1"/>
+    <path d="M60 60c0 0-15 5-15 20 0 10 7 7 15 0 8 7 15 10 15 0 0-15-15-20-15-20z" fill="#2ecc71" opacity="0.08"/>
+  </g>
+  
+  <!-- 右上角小番茄 -->
+  <g id="tomato-small-2">
+    <circle cx="240" cy="80" r="50" fill="#e74c3c" opacity="0.12"/>
+    <path d="M240 30c0 0-18 6-18 25 0 12 9 9 18 0 9 9 18 12 18 0 0-19-18-25-18-25z" fill="#2ecc71" opacity="0.1"/>
+  </g>
+  
+  <!-- 右下角小番茄 -->
+  <g id="tomato-small-3">
+    <circle cx="240" cy="240" r="35" fill="#e74c3c" opacity="0.1"/>
+    <path d="M240 205c0 0-12 4-12 17 0 8 6 6 12 0 6 6 12 8 12 0 0-13-12-17-12-17z" fill="#2ecc71" opacity="0.08"/>
+  </g>
+  
+  <!-- 左下角小番茄 -->
+  <g id="tomato-small-4">
+    <circle cx="70" cy="230" r="45" fill="#e74c3c" opacity="0.12"/>
+    <path d="M70 185c0 0-15 5-15 20 0 10 7 7 15 0 8 7 15 10 15 0 0-15-15-20-15-20z" fill="#2ecc71" opacity="0.1"/>
+  </g>
+</svg>

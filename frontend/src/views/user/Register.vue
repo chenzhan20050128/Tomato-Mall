@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { userRegister } from "../../api/user.ts"
 import { ElMessage } from 'element-plus'
 import { User, Lock, Message, Phone, UserFilled, PictureRounded, Location } from '@element-plus/icons-vue'
 import { captchaGenerator } from '../../utils/captcha'
+
+// 导入共享样式
+import '@/assets/css/auth.css'
 
 const router = useRouter()
 
@@ -49,13 +52,12 @@ const registerDisabled = computed(() => {
     isPasswordMatching.value && isPasswordValid.value && hasCaptchaInput.value)
 })
 
-// 从前端获取验证码
+// 获取验证码
 const getCaptcha = async () => {
   const { image, code } = captchaGenerator.generate()
   captchaImage.value = image
   captchaCode.value = code
 }
-getCaptcha()
 
 // 注册处理
 const handleRegister = async () => {
@@ -76,8 +78,8 @@ const handleRegister = async () => {
     password: string;
     name: string;
     role: string;
-    email?: string;
     telephone?: string;
+    email?: string;
     location?: string;
   } = {
     username: username.value,
@@ -125,21 +127,28 @@ function mapRoleValue(roleValue) {
     default: return 'user'
   }
 }
+
+// 页面加载时自动获取验证码
+onMounted(() => {
+  getCaptcha()
+})
 </script>
+
 <template>
   <el-main class="auth-container">
     <div class="auth-content">
-      <!-- 左侧标题区域 -->
+      <!-- 左侧品牌区域 -->
       <div class="auth-branding">
         <h1 class="brand-title">番茄读书</h1>
         <p class="brand-subtitle">您的线上实体书本<br/>购买平台</p>
       </div>
       
-      <!-- 右侧注册表单 - 移除多余的卡片嵌套，确保可滚动 -->
+      <!-- 右侧注册表单 -->
       <div class="auth-form-wrapper">
         <div class="auth-form">
           <div class="auth-header">
-            <h1 class="auth-title">注册</h1>
+            <div class="tomato-icon"></div>
+            <h1 class="auth-title">账号注册</h1>
           </div>
 
           <el-form @keydown.enter="!registerDisabled && handleRegister()">
@@ -164,7 +173,7 @@ function mapRoleValue(roleValue) {
                 <el-icon><UserFilled /></el-icon>
                 <span>身份</span>
               </label>
-              <el-select v-model="role" placeholder="请选择身份">
+              <el-select v-model="role" placeholder="请选择身份" class="full-width">
                 <el-option label="管理员" value="1" />
                 <el-option label="顾客" value="2" />
                 <el-option label="商家" value="3" />
@@ -246,211 +255,38 @@ function mapRoleValue(roleValue) {
 </template>
 
 <style scoped>
-/* 整体背景和容器设置 */
-.auth-container {
-  min-height: 100vh;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #e0f7fa 0%, #cfb0d4 100%);
-  position: relative;
-  overflow: hidden;
+/* 引入共享样式文件，特定组件样式可以在这里覆盖 */
+.el-form {
+  margin-top: 10px;
 }
 
-/* 添加背景图案效果 */
-.auth-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('../../assets/background-pattern.svg');
-  background-size: cover;
-  opacity: 0.05;
-  z-index: 0;
+.el-input {
+  margin-bottom: 15px;
 }
 
-/* 内容区域布局 - 不设置固定高度，允许更灵活的调整 */
-.auth-content {
-  display: flex;
-  width: 90%;
-  max-width: 1200px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  z-index: 1;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  min-height: 600px;
-  max-height: 90vh;
-}
-
-/* 左侧品牌区域 */
-.auth-branding {
-  flex: 1;
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  color: white;
-  padding: 3rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.brand-title {
-  font-size: 3.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-.brand-subtitle {
-  font-size: 1.8rem;
-  font-weight: 300;
-  line-height: 1.5;
-}
-
-/* 右侧表单区域 - 确保可以滚动 */
-.auth-form-wrapper {
-  flex: 1;
-  padding: 2rem;
-  display: flex;
-  align-items: flex-start; /* 让表单靠上方对齐 */
-  justify-content: center;
-  overflow-y: auto; /* 允许垂直滚动 */
-}
-
-.auth-form {
-  width: 100%;
-  max-width: 420px;
-  padding: 1rem 0; /* 添加些许上下内边距 */
-}
-
-.auth-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.auth-title {
-  color: #303030;
-  font-size: 2rem;
-  font-weight: 600;
-}
-
-/* 验证码区域样式 */
-.auth-verify-group {
-  display: flex;
-  gap: 10px;
-}
-
-.captcha-image {
-  width: 120px;
-  height: 2.5rem;
-  cursor: pointer;
-  border: 1px solid var(--el-border-color-base);
-  border-radius: 4px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.captcha-image img {
-  max-width: 100%;
-  max-height: 100%;
-}
-
-/* 按钮组样式 */
-.auth-button-group {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-}
-
-.auth-button-group .el-button {
-  width: 48%;
-}
-
-/* 自定义标签样式 */
-.custom-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #606266;
-}
-
-.custom-label.error {
-  color: var(--el-color-danger);
-}
-
-.error-input :deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--el-color-danger) inset;
-}
-
+/* 确保输入框和下拉框宽度一致 */
 :deep(.el-input__wrapper),
 :deep(.el-select__wrapper),
 :deep(.el-select .el-input__wrapper) {
   height: 2.5rem;
   width: 100%;
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  transition: all 0.2s;
 }
 
-/* 响应式调整 */
-@media (max-width: 992px) {
-  .auth-content {
-    flex-direction: column;
-    width: 95%;
-    height: auto;
-  }
-  
-  .auth-branding {
-    padding: 2rem;
-    align-items: center;
-    text-align: center;
-  }
-  
-  .brand-title {
-    font-size: 2.5rem;
-  }
-  
-  .brand-subtitle {
-    font-size: 1.4rem;
-  }
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover),
+:deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #626aef inset;
 }
 
-@media (max-width: 576px) {
-  .auth-container {
-    align-items: flex-start;
-    padding: 1rem 0;
-  }
-  
-  .auth-content {
-    width: 100%;
-    height: auto;
-    max-height: none;
-    min-height: auto;
-    border-radius: 0;
-  }
-  
-  .auth-form-wrapper {
-    padding: 1.5rem;
-  }
-  
-  .auth-branding {
-    padding: 1.5rem;
-  }
-  
-  .brand-title {
-    font-size: 2rem;
-  }
-  
-  .brand-subtitle {
-    font-size: 1.2rem;
-  }
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focus),
+:deep(.el-select .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #626aef inset;
+}
+
+.full-width {
+  width: 100%;
 }
 </style>

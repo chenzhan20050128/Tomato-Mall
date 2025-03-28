@@ -1,0 +1,9 @@
+<!-- filepath: src/assets/background-pattern.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+  <!-- 背景图案修改为番茄和叶子元素 -->
+  <path d="M0 0h60v60H0z" fill="none"/>
+  <!-- 番茄形状 -->
+  <path d="M30 10c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20z" fill="#e74c3c" opacity="0.12"/>
+  <!-- 叶子形状 -->
+  <path d="M30 10c0 0-10 5-10 15s10 5 10-5c0 10 10 15 10 5s-10-15-10-15z" fill="#2ecc71" opacity="0.15"/>
+</svg>

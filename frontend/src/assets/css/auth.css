@@ -1,0 +1,333 @@
+/* 登录和注册页面共享样式 */
+.auth-container {
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 柔和的淡粉色到淡绿色渐变背景 */
+    background: linear-gradient(135deg, #fff5f5 0%, #f0fff4 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 番茄背景图案 */
+.auth-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('@/assets/tomato-pattern.svg');
+    background-size: 600px 600px;
+    background-position: center;
+    opacity: 0.8;  /* 增加透明度使图案更明显 */
+    z-index: 0;
+    animation: backgroundFloat 60s linear infinite; /* 添加缓慢浮动动画 */
+}
+
+/* 添加浮动动画 */
+@keyframes backgroundFloat {
+    0% {
+        background-position: 0% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    100% {
+        background-position: 0% 0%;
+    }
+}
+
+.auth-content {
+    display: flex;
+    width: 90%;
+    max-width: 1200px;
+    box-shadow: 0 15px 35px rgba(231, 76, 60, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    /* 半透明白色背景，增加模糊效果使番茄图案透过 */
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(5px);
+    min-height: 600px;
+    max-height: 90vh;
+}
+
+  
+/* 左侧品牌区域 - 更改为番茄红色渐变 */
+.auth-branding {
+    flex: 1;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+  
+/* 品牌标题动画 */
+.brand-title {
+    font-size: 3.5rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+  
+/* 品牌副标题动画 */
+.brand-subtitle {
+    font-size: 1.8rem;
+    font-weight: 300;
+    line-height: 1.5;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out 0.3s forwards;
+}
+  
+/* 右侧表单区域 */
+.auth-form-wrapper {
+    flex: 1;
+    padding: 2rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+}
+  
+.auth-form {
+    width: 100%;
+    max-width: 420px;
+    padding: 1rem 0;
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out 0.5s forwards;
+}
+  
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+  
+.auth-title {
+    color: #e74c3c;  /* 标题文字改为番茄红 */
+    font-size: 2.2rem;
+    font-weight: 600;
+    position: relative;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+}
+  
+.auth-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    width: 50px;
+    height: 3px;
+    /* 更改下划线为红绿渐变 */
+    background: linear-gradient(90deg, #e74c3c 0%, #2ecc71 100%);
+    transform: translateX(-50%);
+}
+  
+/* 验证码区域样式 */
+.auth-verify-group {
+    display: flex;
+    gap: 10px;
+}
+  
+.captcha-image {
+    width: 120px;
+    height: 2.5rem;
+    cursor: pointer;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+  
+.captcha-image:hover {
+    border-color: #e74c3c;  /* 鼠标悬停边框改为番茄红 */
+    transform: scale(1.02);
+}
+  
+.captcha-image img {
+    max-width: 100%;
+    max-height: 100%;
+}
+  
+/* 按钮组样式 */
+.auth-button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+  
+.auth-button-group .el-button {
+    width: 48%;
+    height: 40px;
+    transition: all 0.3s;
+}
+  
+.auth-button-group .el-button:hover {
+    transform: translateY(-2px);
+    /* 阴影颜色更改为淡红色 */
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.2);
+}
+  
+/* 自定义标签样式 */
+.custom-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #606266;
+}
+
+/* 标签图标颜色设为番茄红 */
+.custom-label .el-icon {
+    color: #e74c3c;
+}
+  
+.custom-label.error {
+    color: #f56c6c;
+}
+  
+.error-input .el-input__wrapper {
+    box-shadow: 0 0 0 1px #f56c6c inset !important;
+}
+
+/* 输入框焦点状态 */
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover),
+:deep(.el-select .el-input__wrapper:hover) {
+    box-shadow: 0 0 0 1px #e74c3c inset;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focus),
+:deep(.el-select .el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 1px #e74c3c inset;
+}
+
+/* Element Plus主题色覆盖 */
+:root {
+    --el-color-primary: #e74c3c;
+    --el-color-primary-light-3: #eb6b5e;
+    --el-color-primary-light-5: #f08e84;
+    --el-color-primary-light-7: #f5b1aa;
+    --el-color-primary-light-9: #fad4d0;
+}
+  
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+  
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+  
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .auth-content {
+        flex-direction: column;
+        width: 95%;
+        height: auto;
+    }
+    
+    .auth-branding {
+        padding: 2rem;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .brand-title {
+        font-size: 2.5rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 1.4rem;
+    }
+}
+  
+@media (max-width: 576px) {
+    .auth-container {
+        align-items: flex-start;
+        padding: 1rem 0;
+    }
+    
+    .auth-content {
+        width: 100%;
+        height: auto;
+        max-height: none;
+        min-height: auto;
+        border-radius: 0;
+    }
+    
+    .auth-form-wrapper {
+        padding: 1.5rem;
+    }
+    
+    .auth-branding {
+        padding: 1.5rem;
+    }
+    
+    .brand-title {
+        font-size: 2rem;
+    }
+    
+    .brand-subtitle {
+        font-size: 1.2rem;
+    }
+}
+/* 添加到 auth.css */
+.tomato-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 10px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    position: relative;
+    animation: bounce 2s infinite ease-in-out;
+}
+
+.tomato-icon::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 15px;
+    height: 15px;
+    background-color: #2ecc71;
+    border-radius: 50% 50% 0 50%;
+    transform: translateX(-50%) rotate(-45deg);
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
