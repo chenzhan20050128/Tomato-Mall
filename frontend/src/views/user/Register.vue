@@ -3,39 +3,50 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { userRegister } from "../../api/user.ts"
 import { ElMessage } from 'element-plus'
-import { User, Lock, Message, Phone, UserFilled, PictureRounded } from '@element-plus/icons-vue'
+import { User, Lock, Message, Phone, UserFilled, PictureRounded, Location } from '@element-plus/icons-vue'
 import { captchaGenerator } from '../../utils/captcha'
 
 const router = useRouter()
 
 // 注册表项
-const phone = ref('')
-const password = ref('')
+const username = ref('') // 用户名，必填
+const password = ref('') // 密码，必填
 const confirmPassword = ref('')
-const username = ref('')
-const role = ref()
+const name = ref('') // 真实姓名，必填
+const telephone = ref('') // 手机号，非必填
+const email = ref('') // 邮箱，非必填
+const location = ref('') // 位置，非必填
+const role = ref('') // 角色，必填 (admin/user)
 const captcha = ref('')
 const captchaImage = ref('')
 const captchaCode = ref('')
 
 // 前端表单校验
-const hasPhoneInput = computed(() => phone.value !== '')
+const hasUsernameInput = computed(() => username.value.trim() !== '')
 const hasPasswordInput = computed(() => password.value !== '')
 const hasConfirmPasswordInput = computed(() => confirmPassword.value !== '')
-const hasUsernameInput = computed(() => username.value !== '')
-const hasRoleSelected = computed(() => role.value !== undefined && role.value !== '')
+const hasNameInput = computed(() => name.value.trim() !== '')
+const hasRoleSelected = computed(() => role.value !== '')
 const hasCaptchaInput = computed(() => captcha.value !== '')
 
-const phoneRegex = /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/
-const isPhoneValid = computed(() => phoneRegex.test(phone.value))
+// 手机号验证（可选字段，但如果有输入则必须正确）
+const phoneRegex = /^1\d{10}$/
+const isPhoneValid = computed(() => telephone.value === '' || phoneRegex.test(telephone.value))
+
+// 邮箱验证（可选字段，但如果有输入则必须正确）
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const isEmailValid = computed(() => email.value === '' || emailRegex.test(email.value))
+
+// 密码验证
 const isPasswordMatching = computed(() => password.value === confirmPassword.value)
 const isPasswordValid = computed(() => password.value.length >= 6)
 
+// 注册按钮是否可用
 const registerDisabled = computed(() => {
-  return !(hasPhoneInput.value && hasPasswordInput.value &&
-    hasConfirmPasswordInput.value && hasUsernameInput.value &&
-    hasRoleSelected.value && isPhoneValid.value && isPasswordMatching.value &&
-    hasCaptchaInput.value && isPasswordValid.value)
+  return !(hasUsernameInput.value && hasPasswordInput.value &&
+    hasConfirmPasswordInput.value && hasNameInput.value &&
+    hasRoleSelected.value && isPhoneValid.value && isEmailValid.value &&
+    isPasswordMatching.value && isPasswordValid.value && hasCaptchaInput.value)
 })
 
 // 从前端获取验证码
@@ -59,30 +70,62 @@ const handleRegister = async () => {
     return
   }
 
-  userRegister({
-    phone: phone.value,
-    password: password.value,
+  // 构建符合后端要求的注册对象
+  const registerData: {
+    username: string;
+    password: string;
+    name: string;
+    role: string;
+    email?: string;
+    telephone?: string;
+    location?: string;
+  } = {
     username: username.value,
-    role: role.value
-  }).then(res => {
-    if (res.data.code === '000') {
+    password: password.value,
+    name: name.value,
+    role: mapRoleValue(role.value) // 转换角色值
+  }
+
+  // 添加可选字段
+  if (telephone.value) registerData.telephone = telephone.value
+  if (email.value) registerData.email = email.value
+  if (location.value) registerData.location = location.value
+
+  userRegister(registerData).then(res => {
+    if (res.data.code === '200') {
       ElMessage({
         message: "注册成功！请登录账号",
         type: 'success',
         center: true,
       })
-      router.push({ path: "/login" })
-    } else if (res.data.code === '400') {
+      router.push('/login')
+    } else {
       ElMessage({
-        message: res.data.msg,
+        message: res.data.msg || "注册失败",
         type: 'error',
         center: true,
       })
     }
+  }).catch(err => {
+    console.error('注册请求出错:', err)
+    ElMessage({
+      message: "网络错误，请稍后重试",
+      type: 'error',
+      center: true,
+    })
   })
 }
-</script>
 
+// 角色值映射函数 (前端下拉框值 -> 后端需要的值)
+function mapRoleValue(roleValue) {
+  switch (roleValue) {
+    case '1': return 'admin'
+    case '2': return 'user'
+    case '3': return 'merchant'
+    default: return 'user'
+  }
+}
+</script>
 <template>
   <el-main class="auth-container">
     <div class="auth-content">
@@ -92,9 +135,9 @@ const handleRegister = async () => {
         <p class="brand-subtitle">您的线上实体书本<br/>购买平台</p>
       </div>
       
-      <!-- 右侧注册卡片 -->
+      <!-- 右侧注册表单 - 移除多余的卡片嵌套，确保可滚动 -->
       <div class="auth-form-wrapper">
-        <el-card class="auth-card" shadow="hover">
+        <div class="auth-form">
           <div class="auth-header">
             <h1 class="auth-title">注册</h1>
           </div>
@@ -106,6 +149,14 @@ const handleRegister = async () => {
                 <span>用户名</span>
               </label>
               <el-input v-model="username" placeholder="请输入用户名" />
+            </el-form-item>
+            
+            <el-form-item>
+              <label class="custom-label">
+                <el-icon><User /></el-icon>
+                <span>姓名</span>
+              </label>
+              <el-input v-model="name" placeholder="请输入真实姓名" />
             </el-form-item>
 
             <el-form-item>
@@ -121,11 +172,27 @@ const handleRegister = async () => {
             </el-form-item>
 
             <el-form-item>
-              <label class="custom-label" :class="{ 'error': hasPhoneInput && !isPhoneValid }">
+              <label class="custom-label" :class="{ 'error': !isPhoneValid }">
                 <el-icon><Phone /></el-icon>
-                <span>{{ !hasPhoneInput || isPhoneValid ? '手机号' : '手机号格式不正确' }}</span>
+                <span>{{ isPhoneValid ? '手机号 (选填)' : '手机号格式不正确' }}</span>
               </label>
-              <el-input v-model="phone" :class="{ 'error-input': hasPhoneInput && !isPhoneValid }" placeholder="请输入手机号" />
+              <el-input v-model="telephone" :class="{ 'error-input': !isPhoneValid }" placeholder="请输入手机号" />
+            </el-form-item>
+
+            <el-form-item>
+              <label class="custom-label" :class="{ 'error': !isEmailValid }">
+                <el-icon><Message /></el-icon>
+                <span>{{ isEmailValid ? '邮箱 (选填)' : '邮箱格式不正确' }}</span>
+              </label>
+              <el-input v-model="email" :class="{ 'error-input': !isEmailValid }" placeholder="请输入邮箱" />
+            </el-form-item>
+
+            <el-form-item>
+              <label class="custom-label">
+                <el-icon><Location /></el-icon>
+                <span>位置 (选填)</span>
+              </label>
+              <el-input v-model="location" placeholder="请输入位置" />
             </el-form-item>
 
             <el-form-item>
@@ -172,7 +239,7 @@ const handleRegister = async () => {
               </router-link>
             </div>
           </el-form>
-        </el-card>
+        </div>
       </div>
     </div>
   </el-main>
@@ -182,12 +249,11 @@ const handleRegister = async () => {
 /* 整体背景和容器设置 */
 .auth-container {
   min-height: 100vh;
-  height: 100vh; /* 确保容器铺满整个视口高度 */
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0f7fa 0%, #cfb0d4 100%); /* 与主页保持一致的背景色 */
+  background: linear-gradient(135deg, #e0f7fa 0%, #cfb0d4 100%);
   position: relative;
   overflow: hidden;
 }
@@ -206,11 +272,10 @@ const handleRegister = async () => {
   z-index: 0;
 }
 
-/* 内容区域布局 */
+/* 内容区域布局 - 不设置固定高度，允许更灵活的调整 */
 .auth-content {
   display: flex;
   width: 90%;
-  height: 90vh; /* 使用视口高度的90%，留出一点边距 */
   max-width: 1200px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
@@ -219,12 +284,13 @@ const handleRegister = async () => {
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  min-height: 600px;
+  max-height: 90vh;
 }
 
 /* 左侧品牌区域 */
 .auth-branding {
   flex: 1;
-  height: 100%; /* 铺满父容器高度 */
   background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   color: white;
   padding: 3rem;
@@ -247,23 +313,20 @@ const handleRegister = async () => {
   line-height: 1.5;
 }
 
-/* 右侧表单区域 */
+/* 右侧表单区域 - 确保可以滚动 */
 .auth-form-wrapper {
   flex: 1;
-  height: 100%; /* 铺满父容器高度 */
   padding: 2rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* 让表单靠上方对齐 */
   justify-content: center;
-  overflow-y: auto;
+  overflow-y: auto; /* 允许垂直滚动 */
 }
 
-.auth-card {
+.auth-form {
   width: 100%;
   max-width: 420px;
-  border: none;
-  box-shadow: none;
-  background: transparent;
+  padding: 1rem 0; /* 添加些许上下内边距 */
 }
 
 .auth-header {
@@ -305,6 +368,7 @@ const handleRegister = async () => {
   display: flex;
   justify-content: space-between;
   margin-top: 2rem;
+  margin-bottom: 1rem;
 }
 
 .auth-button-group .el-button {
@@ -341,8 +405,7 @@ const handleRegister = async () => {
   .auth-content {
     flex-direction: column;
     width: 95%;
-    height: auto; /* 在小屏幕上允许高度自适应 */
-    min-height: 95vh; /* 但仍然至少占据95%视口高度 */
+    height: auto;
   }
   
   .auth-branding {
@@ -361,10 +424,16 @@ const handleRegister = async () => {
 }
 
 @media (max-width: 576px) {
+  .auth-container {
+    align-items: flex-start;
+    padding: 1rem 0;
+  }
+  
   .auth-content {
     width: 100%;
-    height: 100vh; /* 在最小屏幕上完全铺满 */
-    min-height: 100vh;
+    height: auto;
+    max-height: none;
+    min-height: auto;
     border-radius: 0;
   }
   

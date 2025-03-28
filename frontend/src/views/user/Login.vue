@@ -8,24 +8,21 @@ import { captchaGenerator } from '../../utils/captcha'
 
 const router = useRouter()
 
-// 登录表单数据
-const phone = ref('')
-const password = ref('')
+// 登录表单数据（修改为 username）
+const username = ref('') // 用户名，必填
+const password = ref('') // 密码，必填
 const captcha = ref('')
 const captchaImage = ref('')
 const captchaCode = ref('')
 
 // 前端表单校验
-const hasPhoneInput = computed(() => phone.value !== '')
+const hasUsernameInput = computed(() => username.value.trim() !== '')
 const hasPasswordInput = computed(() => password.value !== '')
 const hasCaptchaInput = computed(() => captcha.value !== '')
 
-const phoneRegex = /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/
-const isPhoneValid = computed(() => phoneRegex.test(phone.value))
-
+// 不再强制要求是手机号格式，因为可以是用户名
 const loginDisabled = computed(() => {
-  return !(hasPhoneInput.value && hasPasswordInput.value && 
-    hasCaptchaInput.value)
+  return !(hasUsernameInput.value && hasPasswordInput.value && hasCaptchaInput.value)
 })
 
 // 从前端获取验证码
@@ -50,16 +47,15 @@ const handleLogin = async () => {
   }
 
   userLogin({
-    username: phone.value,
+    username: username.value,
     password: password.value
   }).then(res => {
     if (res.data.code === '200') {
       // 保存用户信息和token
-      sessionStorage.setItem('token', res.data.data) // 注意：后端返回的是直接的token字符串
-      sessionStorage.setItem('username', phone.value) // 使用用户输入的手机号作为用户名
+      sessionStorage.setItem('token', res.data.data) // 后端返回的是直接的token字符串
+      sessionStorage.setItem('username', username.value) // 保存用户名
 
       // 可根据需要保存其他信息
-      // 如果后端在登录响应中返回了用户角色，也应保存
       if (res.data.role) {
         sessionStorage.setItem('role', res.data.role)
       }
@@ -89,7 +85,6 @@ const handleLogin = async () => {
   })
 }
 </script>
-
 <template>
   <el-main class="auth-container">
     <div class="auth-content">
@@ -99,20 +94,20 @@ const handleLogin = async () => {
         <p class="brand-subtitle">您的线上实体书本<br/>购买平台</p>
       </div>
       
-      <!-- 右侧登录卡片 -->
+      <!-- 右侧登录表单 - 移除多余的卡片嵌套 -->
       <div class="auth-form-wrapper">
-        <el-card class="auth-card" shadow="hover">
+        <div class="auth-form">
           <div class="auth-header">
             <h1 class="auth-title">登录</h1>
           </div>
 
           <el-form @keydown.enter="!loginDisabled && handleLogin()">
             <el-form-item>
-              <label class="custom-label" :class="{ 'error': hasPhoneInput && !isPhoneValid }">
+              <label class="custom-label">
                 <el-icon><User /></el-icon>
-                <span>{{ !hasPhoneInput || isPhoneValid ? '手机号' : '手机号格式不正确' }}</span>
+                <span>用户名</span>
               </label>
-              <el-input v-model="phone" :class="{ 'error-input': hasPhoneInput && !isPhoneValid }" placeholder="请输入手机号" />
+              <el-input v-model="username" placeholder="请输入用户名" />
             </el-form-item>
 
             <el-form-item>
@@ -148,7 +143,7 @@ const handleLogin = async () => {
               </router-link>
             </div>
           </el-form>
-        </el-card>
+        </div>
       </div>
     </div>
   </el-main>
@@ -158,12 +153,11 @@ const handleLogin = async () => {
 /* 整体背景和容器设置 */
 .auth-container {
   min-height: 100vh;
-  height: 100vh; /* 确保容器铺满整个视口高度 */
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0f7fa 0%, #cfb0d4 100%); /* 与主页保持一致的背景色 */
+  background: linear-gradient(135deg, #e0f7fa 0%, #cfb0d4 100%);
   position: relative;
   overflow: hidden;
 }
@@ -186,7 +180,6 @@ const handleLogin = async () => {
 .auth-content {
   display: flex;
   width: 90%;
-  height: 90vh; /* 使用视口高度的90%，留出一点边距 */
   max-width: 1200px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   border-radius: 10px;
@@ -195,12 +188,13 @@ const handleLogin = async () => {
   z-index: 1;
   background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  min-height: 600px;
+  max-height: 90vh;
 }
 
 /* 左侧品牌区域 */
 .auth-branding {
   flex: 1;
-  height: 100%; /* 铺满父容器高度 */
   background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   color: white;
   padding: 3rem;
@@ -223,10 +217,9 @@ const handleLogin = async () => {
   line-height: 1.5;
 }
 
-/* 右侧表单区域 */
+/* 右侧表单区域 - 优化滚动和布局 */
 .auth-form-wrapper {
   flex: 1;
-  height: 100%; /* 铺满父容器高度 */
   padding: 2rem;
   display: flex;
   align-items: center;
@@ -234,12 +227,9 @@ const handleLogin = async () => {
   overflow-y: auto;
 }
 
-.auth-card {
+.auth-form {
   width: 100%;
   max-width: 420px;
-  border: none;
-  box-shadow: none;
-  background: transparent;
 }
 
 .auth-header {
@@ -315,8 +305,7 @@ const handleLogin = async () => {
   .auth-content {
     flex-direction: column;
     width: 95%;
-    height: auto; /* 在小屏幕上允许高度自适应 */
-    min-height: 95vh; /* 但仍然至少占据95%视口高度 */
+    height: auto;
   }
   
   .auth-branding {
@@ -337,7 +326,7 @@ const handleLogin = async () => {
 @media (max-width: 576px) {
   .auth-content {
     width: 100%;
-    height: 100vh; /* 在最小屏幕上完全铺满 */
+    height: auto;
     min-height: 100vh;
     border-radius: 0;
   }

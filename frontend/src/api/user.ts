@@ -14,13 +14,14 @@ export function userLogin(data: {
 
 // 用户注册
 export function userRegister(data: {
-  username: string,
-  password: string,
-  name: string,
-  role: string,
-  telephone?: string,
-  email?: string,
-  location?: string
+  username: string, // 用户名，必填
+  password: string, // 密码，必填
+  name: string,     // 真实姓名，必填
+  role: string,     // 角色，必填 (admin/user/merchant)
+  avatar?: string,  // 头像 URL，选填
+  telephone?: string, // 手机号，选填
+  email?: string,   // 邮箱，选填
+  location?: string // 位置，选填
 }) {
   return axios({
     url: '/api/accounts',
