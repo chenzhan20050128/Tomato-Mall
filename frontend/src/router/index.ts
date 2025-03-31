@@ -9,6 +9,7 @@ const Register = () => import('../views/user/Register.vue')
 const Profile = () => import('../views/user/Profile.vue')
 const Home = () => import('../views/home/Home.vue')
 const Mall = () => import('../views/mall/Mall.vue')
+const Detail = () => import('../views/product/ProductDetail.vue')
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -63,6 +64,14 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '图书商城',
           requiresAuth: true
+        }
+      },
+      {
+        path: '/product/:id',
+        name: 'ProductDetail',
+        component: Detail,
+        meta: {
+          title: '商品详情',
         }
       },
     ]
