@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, inject, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight } from '@element-plus/icons-vue'
+import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight, ShoppingBag } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -120,6 +120,16 @@ const handleLogout = () => {
 
         <!-- 用户区 -->
         <div class="nav-group user-area">
+          <!-- 购物车按钮 (始终显示) -->
+          <el-menu-item index="/cart">
+            <el-badge :value="0" class="cart-badge">
+              <el-icon>
+                <ShoppingBag />
+              </el-icon>
+            </el-badge>
+            <span>购物车</span>
+          </el-menu-item>
+          
           <template v-if="!isLoggedIn">
             <el-menu-item index="/login">
               <el-icon>
@@ -270,5 +280,17 @@ const handleLogout = () => {
   .el-menu-item {
     padding: 0 10px;
   }
+}
+
+/* 修复购物车徽章定位 */
+.cart-badge {
+  position: relative; /* 确保相对定位 */
+}
+
+.cart-badge :deep(.el-badge__content) {
+  transform: scale(0.8);
+  right: 5px;   /* 调整右侧位置，值改为正数 */
+  top: 5px;     /* 保持顶部位置 */
+  z-index: 2;   /* 确保在其他元素之上 */
 }
 </style>
