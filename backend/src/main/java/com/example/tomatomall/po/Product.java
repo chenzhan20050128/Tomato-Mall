@@ -1,41 +1,33 @@
 package com.example.tomatomall.po;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.Data;
 import javax.persistence.*;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
 
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @Entity
 @Table(name = "products")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
-    @NotEmpty(message = "商品名称不能为空")
-    @Column(length = 100, nullable = false)
-    private String name;
+    @Column(nullable = false, length = 50)
+    private String title;
 
-    @Column(length = 500)
-    private String description;
-
-    @NotNull(message = "商品价格不能为空")
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(length = 255)
-    private String image;
-
     @Column(nullable = false)
-    private Integer stock;
+    private Double rate;
 
-    @Column(nullable = false)
-    private Boolean isAvailable = true;
+    private String description;
+    private String cover;
+    private String detail;
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Specification> specifications;
 }

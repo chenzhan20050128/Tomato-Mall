@@ -142,10 +142,69 @@ INSERT INTO users (username, password, name, avatar, telephone, email, location,
 );
 
 
--- 插入示例数据
-INSERT INTO products (id, description, image, is_available, name, price, stock) VALUES
-                                                                               (1, 'Apple最新旗舰手机，搭载A17芯片', 'https://example.com/iphone15.jpg', 1, 'iPhone 15', 6999.00, 100),
-                                                                               (2, '14英寸MacBook Pro，M2芯片', 'https://example.com/macbook.jpg', 1, 'MacBook Pro', 12999.00, 50),
-                                                                               (3, '主动降噪，空间音频', 'https://example.com/airpods.jpg', 1, 'AirPods Pro', 1999.00, 200),
-                                                                               (4, '10.9英寸视网膜显示屏', 'https://example.com/ipad.jpg', 1, 'iPad Air', 4799.00, 80),
-                                                                               (5, 'Series 9，健康监测', 'https://example.com/watch.jpg', 1, 'Apple Watch', 3299.00, 150);
+-- 删除已存在的表（注意删除顺序，先删除有外键引用的表）
+DROP TABLE IF EXISTS stockpiles;
+DROP TABLE IF EXISTS specifications;
+DROP TABLE IF EXISTS products;
+
+-- 创建商品表
+CREATE TABLE products (
+                          id INT AUTO_INCREMENT PRIMARY KEY COMMENT '商品id',
+                          title VARCHAR(50) NOT NULL COMMENT '商品名称，不允许为空',
+                          price DECIMAL(10,2) NOT NULL COMMENT '商品价格，不允许为空，最低为0元',
+                          rate DOUBLE NOT NULL DEFAULT 5.0 COMMENT '商品评分，最低0分，最高10分',
+                          description VARCHAR(255) COMMENT '商品描述',
+                          cover VARCHAR(500) COMMENT '商品封面url',
+                          detail VARCHAR(500) COMMENT '商品详细说明'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+
+-- 创建商品规格表
+CREATE TABLE specifications (
+                                id INT AUTO_INCREMENT PRIMARY KEY COMMENT '规格id',
+                                item VARCHAR(50) NOT NULL COMMENT '规格名称，不允许为空',
+                                value VARCHAR(255) NOT NULL COMMENT '规格内容，不允许为空',
+                                product_id INT NOT NULL COMMENT '所属商品id，不允许为空',
+                                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品规格表';
+
+-- 创建商品库存表
+CREATE TABLE stockpiles (
+                            id INT AUTO_INCREMENT PRIMARY KEY COMMENT '商品库存id',
+                            product_id INT NOT NULL COMMENT '所属商品id，不允许为空',
+                            amount INT NOT NULL DEFAULT 0 COMMENT '商品库存数，指可卖的商品数量，不允许为空',
+                            frozen INT NOT NULL DEFAULT 0 COMMENT '商品库存冻结数，指不可卖的商品数量，不允许为空',
+                            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品库存表';
+
+-- 插入商品数据
+INSERT INTO products (title, price, rate, description, cover, detail) VALUES
+                                                                          ('深入理解Java虚拟机', 99.50, 9.5, 'Java开发者必读经典', 'https://example.com/covers/jvm.jpg', '全面讲解JVM原理与实践'),
+                                                                          ('代码整洁之道', 59.00, 9.2, '软件工程经典著作', 'https://example.com/covers/clean-code.jpg', '讲解代码整洁之道与最佳实践'),
+                                                                          ('Spring实战', 89.00, 9.0, 'Spring框架权威指南', 'https://example.com/covers/spring.jpg', '深入浅出Spring核心原理');
+
+-- 插入规格数据
+INSERT INTO specifications (item, value, product_id) VALUES
+-- Java虚拟机的规格
+('作者', '周志明', 1),
+('ISBN', '9787111641247', 1),
+('页数', '540', 1),
+('出版社', '机械工业出版社', 1),
+('出版日期', '2019-12-01', 1),
+-- 代码整洁之道的规格
+('作者', 'Robert C. Martin', 2),
+('ISBN', '9787115216878', 2),
+('页数', '288', 2),
+('出版社', '人民邮电出版社', 2),
+('出版日期', '2010-01-01', 2),
+-- Spring实战的规格
+('作者', 'Craig Walls', 3),
+('ISBN', '9787115417305', 3),
+('页数', '624', 3),
+('出版社', '人民邮电出版社', 3),
+('出版日期', '2016-04-01', 3);
+
+-- 插入库存数据
+INSERT INTO stockpiles (product_id, amount, frozen) VALUES
+                                                        (1, 100, 10),
+                                                        (2, 80, 5),
+                                                        (3, 120, 15);

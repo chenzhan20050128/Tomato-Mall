@@ -1,18 +1,19 @@
 package com.example.tomatomall.controller;
 
 import com.example.tomatomall.po.Product;
+import com.example.tomatomall.po.Stockpile;
 import com.example.tomatomall.service.ProductService;
 import com.example.tomatomall.vo.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
-import javax.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
-    @Resource
+
+    @Autowired
     private ProductService productService;
 
     @GetMapping
@@ -21,34 +22,34 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public Response<Product> getProduct(@PathVariable Long id) {
+    public Response<Product> getProduct(@PathVariable Integer id) {
         return productService.getProduct(id);
     }
 
-    @PostMapping
-    public Response<Product> createProduct(@Valid @RequestBody Product product) {
-        return productService.createProduct(product);
-    }
-
     @PutMapping
-    public Response<Product> updateProduct(@Valid @RequestBody Product product) {
+    public Response<String> updateProduct(@RequestBody Product product) {
         return productService.updateProduct(product);
     }
 
+    @PostMapping
+    public Response<Product> createProduct(@RequestBody Product product) {
+        return productService.createProduct(product);
+    }
+
     @DeleteMapping("/{id}")
-    public Response<String> deleteProduct(@PathVariable Long id) {
+    public Response<String> deleteProduct(@PathVariable Integer id) {
         return productService.deleteProduct(id);
     }
 
     @PatchMapping("/stockpile/{productId}")
-    public Response<Integer> updateStock(
-            @PathVariable Long productId,
-            @RequestParam Integer amount) {
+    public Response<String> updateStock(
+            @PathVariable Integer productId,
+            @RequestParam(value = "amount", required = true) Integer amount) {
         return productService.updateStock(productId, amount);
     }
 
     @GetMapping("/stockpile/{productId}")
-    public Response<Integer> getStock(@PathVariable Long productId) {
+    public Response<Stockpile> getStock(@PathVariable Integer productId) {
         return productService.getStock(productId);
     }
 }

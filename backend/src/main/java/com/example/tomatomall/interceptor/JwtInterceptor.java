@@ -30,7 +30,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         // 登录和注册路径不需要验证
         if (("/api/accounts/login".equals(uri)) ||
                 ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method)) ||
-                uri.startsWith("/api/products")) {
+                uri.startsWith("/api/products") || ("/api/products/**".equals(uri))) {
             return true;
         }
 
