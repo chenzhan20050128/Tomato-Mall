@@ -93,7 +93,7 @@ const cancelEdit = () => {
 const saveProfile = async () => {
   // 验证手机号
   if (editForm.telephone) {
-    const phoneRegex = /^1[3-9]\d{9}$/
+    const phoneRegex = /^1[0-9]\d{9}$/
     if (!phoneRegex.test(editForm.telephone)) {
       ElMessage.error('请输入正确的手机号码')
       return
@@ -193,14 +193,8 @@ onMounted(fetchUserInfo)
       <template #header>
         <div class="card-header">
           <h2>个人资料</h2>
-          <div class="header-actions">
-            <template v-if="!isEditing">
-              <el-button type="primary" @click="startEdit" :icon="Edit">编辑资料</el-button>
-            </template>
-            <template v-else>
-              <el-button @click="cancelEdit">取消</el-button>
-              <el-button type="primary" @click="saveProfile">保存</el-button>
-            </template>
+          <div class="header-actions" v-if="!isEditing">
+            <el-button type="primary" @click="startEdit" :icon="Edit">编辑资料</el-button>
           </div>
         </div>
       </template>
@@ -231,6 +225,7 @@ onMounted(fetchUserInfo)
               <span class="item-value">
                 <el-tag v-if="userInfo.role === 'admin'" type="danger">管理员</el-tag>
                 <el-tag v-else-if="userInfo.role === 'user'" type="success">普通用户</el-tag>
+                <el-tag v-else-if="userInfo.role === 'merchant'" type="warning">商家</el-tag>
                 <span v-else>{{ userInfo.role }}</span>
               </span>
             </div>
@@ -256,37 +251,114 @@ onMounted(fetchUserInfo)
           </div>
         </template>
         
-        <!-- 编辑模式 -->
+        <!-- 编辑模式 - 美化后的表单 -->
         <template v-else>
-          <el-form :model="editForm" label-position="top">
-            <el-form-item label="用户名">
-              <el-input v-model="editForm.username" disabled />
-            </el-form-item>
+          <div class="edit-form-container">
+            <!-- 表单左侧的装饰元素 -->
+            <div class="form-decoration">
+              <div class="avatar-edit">
+                <el-avatar 
+                  :size="100" 
+                  :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                />
+              </div>
+              <div class="decoration-text">
+                <h3>更新个人信息</h3>
+                <p>您可以修改以下信息，点击保存完成更新</p>
+              </div>
+            </div>
             
-            <el-form-item label="姓名">
-              <el-input v-model="editForm.name" placeholder="请输入姓名" />
-            </el-form-item>
-            
-            <el-form-item label="手机号">
-              <el-input v-model="editForm.telephone" placeholder="请输入手机号" />
-            </el-form-item>
-            
-            <el-form-item label="邮箱">
-              <el-input v-model="editForm.email" placeholder="请输入邮箱" />
-            </el-form-item>
-            
-            <el-form-item label="位置">
-              <el-input v-model="editForm.location" placeholder="请输入位置" />
-            </el-form-item>
-            
-            <el-form-item label="修改密码 (选填)">
-              <el-input v-model="editForm.password" type="password" show-password placeholder="不修改请留空" />
-            </el-form-item>
-            
-            <el-form-item label="确认密码">
-              <el-input v-model="editForm.confirmPassword" type="password" show-password placeholder="不修改请留空" />
-            </el-form-item>
-          </el-form>
+            <!-- 表单右侧的输入区域 -->
+            <el-form :model="editForm" label-position="top" class="edit-form">
+              <div class="form-section">
+                <h4 class="section-title">基本信息</h4>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><User /></el-icon>
+                      <span>用户名</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.username" disabled prefix-icon="User" />
+                </el-form-item>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><User /></el-icon>
+                      <span>姓名</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.name" placeholder="请输入姓名" prefix-icon="User" />
+                </el-form-item>
+              </div>
+              
+              <div class="form-section">
+                <h4 class="section-title">联系方式</h4>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><Phone /></el-icon>
+                      <span>手机号</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.telephone" placeholder="请输入手机号" prefix-icon="Phone" />
+                </el-form-item>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><Message /></el-icon>
+                      <span>邮箱</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.email" placeholder="请输入邮箱" prefix-icon="Message" />
+                </el-form-item>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><Location /></el-icon>
+                      <span>位置</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.location" placeholder="请输入位置" prefix-icon="Location" />
+                </el-form-item>
+              </div>
+              
+              <div class="form-section">
+                <h4 class="section-title">安全设置</h4>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><Lock /></el-icon>
+                      <span>修改密码 (选填)</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.password" type="password" show-password placeholder="不修改请留空" prefix-icon="Lock" />
+                </el-form-item>
+                
+                <el-form-item>
+                  <template #label>
+                    <div class="form-label">
+                      <el-icon><Lock /></el-icon>
+                      <span>确认密码</span>
+                    </div>
+                  </template>
+                  <el-input v-model="editForm.confirmPassword" type="password" show-password placeholder="不修改请留空" prefix-icon="Lock" />
+                </el-form-item>
+              </div>
+              
+              <!-- 按钮区域 -->
+              <div class="form-actions">
+                <el-button @click="cancelEdit">取消</el-button>
+                <el-button type="primary" @click="saveProfile">保存更改</el-button>
+              </div>
+            </el-form>
+          </div>
         </template>
       </div>
     </el-card>
@@ -297,6 +369,7 @@ onMounted(fetchUserInfo)
 .profile-container {
   padding: 2rem;
   background-color: #f5f7fa;
+  background-image: linear-gradient(135deg, #fff5f5 0%, #f0f7ff 100%);
   min-height: calc(100vh - 60px);
   display: flex;
   justify-content: center;
@@ -306,13 +379,26 @@ onMounted(fetchUserInfo)
 .profile-card {
   width: 100%;
   max-width: 800px;
-  border-radius: 8px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-header h2 {
+  color: #e74c3c;
+  font-size: 1.8rem;
+  margin: 0;
 }
 
 .header-actions {
@@ -350,16 +436,136 @@ onMounted(fetchUserInfo)
 
 .item-label .el-icon {
   margin-right: 8px;
+  color: #e74c3c;
 }
 
 .item-value {
   flex: 1;
+  font-weight: 500;
 }
 
 .action-section {
   display: flex;
   justify-content: center;
   margin-top: 2rem;
+}
+
+/* 美化编辑表单样式 */
+.edit-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-decoration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0;
+  border-bottom: 1px dashed #e0e0e0;
+  margin-bottom: 1rem;
+}
+
+.avatar-edit {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.decoration-text h3 {
+  color: #e74c3c;
+  margin-bottom: 0.5rem;
+}
+
+.decoration-text p {
+  color: #909399;
+  font-size: 0.9rem;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.edit-form {
+  padding: 0 1rem;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.form-section:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.section-title {
+  color: #e74c3c;
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(231, 76, 60, 0.2);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-label .el-icon {
+  color: #e74c3c;
+}
+
+:deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  padding-left: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #e74c3c inset;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #e74c3c inset;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 1rem 0;
+}
+
+.form-actions .el-button {
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.form-actions .el-button:hover {
+  transform: translateY(-2px);
+}
+
+:deep(.el-button--primary) {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+:deep(.el-button--primary:hover),
+:deep(.el-button--primary:focus) {
+  background-color: #d44335;
+  border-color: #d44335;
+}
+
+:deep(.el-tag--danger) {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
 }
 
 /* 响应式调整 */
@@ -370,6 +576,16 @@ onMounted(fetchUserInfo)
   
   .item-label {
     margin-bottom: 0.5rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .el-button {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-bottom: 10px;
   }
 }
 </style>

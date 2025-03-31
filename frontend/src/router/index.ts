@@ -8,6 +8,7 @@ const Login = () => import('../views/user/Login.vue')
 const Register = () => import('../views/user/Register.vue')
 const Profile = () => import('../views/user/Profile.vue')
 const Home = () => import('../views/home/Home.vue')
+const Mall = () => import('../views/mall/Mall.vue')
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -52,6 +53,15 @@ const routes: Array<RouteRecordRaw> = [
         component: Profile,
         meta: {
           title: '个人资料',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'mall',
+        name: 'Mall',
+        component: Mall,
+        meta: {
+          title: '图书商城',
           requiresAuth: true
         }
       },
