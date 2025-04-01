@@ -8,7 +8,7 @@ CREATE TABLE users (
     telephone VARCHAR(11) UNIQUE COMMENT '用户手机号，格式需符合1开头的11位数字', 
     email VARCHAR(100) COMMENT '用户邮箱，格式需符合邮箱规范',
     location VARCHAR(255) COMMENT '用户所在地',
-    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家'
+    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色 admin,user,merchant'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 
@@ -208,6 +208,11 @@ INSERT INTO stockpiles (product_id, amount, frozen) VALUES
                                                         (1, 100, 10),
                                                         (2, 80, 5),
                                                         (3, 120, 15);
+
+
+DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS orders;
+
 CREATE TABLE carts (
   cart_item_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Cart item ID',
   user_id INT NOT NULL COMMENT 'User ID',
@@ -226,3 +231,21 @@ CREATE TABLE orders (
                           create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
                           FOREIGN KEY (user_id) REFERENCES users(userid)
 ) COMMENT='Orders table';
+
+
+
+-- Insert data into carts table
+INSERT INTO carts (user_id, product_id, quantity) VALUES
+                                                      (1, 1, 2),  -- User 1 adds 2 of product 1
+                                                      (1, 2, 1),  -- User 1 adds 1 of product 2
+                                                      (2, 3, 3),  -- User 2 adds 3 of product 3
+                                                      (3, 1, 1),  -- User 3 adds 1 of product 1
+                                                      (3, 2, 2);  -- User 3 adds 2 of product 2
+
+-- Insert data into orders table
+INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES
+                                                                       (1, 258.00, 'Credit Card', 'SHIPPED'),   -- User 1 places an order
+                                                                       (2, 267.00, 'PayPal', 'DELIVERED'),        -- User 2 places an order
+                                                                       (3, 177.00, 'Credit Card', 'PENDING'),  -- User 3 places an order
+                                                                       (4, 99.50, 'PayPal', 'PROCESSING'),  -- User 4 places an order
+                                                                        (5, 59.00, 'Credit Card', 'SHIPPED');   -- User 5 places an order
