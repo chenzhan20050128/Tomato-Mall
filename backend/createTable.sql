@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
+                       userid INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
     username VARCHAR(50) NOT NULL COMMENT '用户名，不允许为空',
     password VARCHAR(100) NOT NULL COMMENT '用户密码，仅参与插入操作',
     name VARCHAR(50) NOT NULL COMMENT '用户姓名，不允许为空',
@@ -7,8 +8,7 @@ CREATE TABLE users (
     telephone VARCHAR(11) UNIQUE COMMENT '用户手机号，格式需符合1开头的11位数字', 
     email VARCHAR(100) COMMENT '用户邮箱，格式需符合邮箱规范',
     location VARCHAR(255) COMMENT '用户所在地',
-    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家',
-    PRIMARY KEY (username)
+    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 
@@ -208,3 +208,21 @@ INSERT INTO stockpiles (product_id, amount, frozen) VALUES
                                                         (1, 100, 10),
                                                         (2, 80, 5),
                                                         (3, 120, 15);
+CREATE TABLE carts (
+  cart_item_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Cart item ID',
+  user_id INT NOT NULL COMMENT 'User ID',
+  product_id INT NOT NULL COMMENT 'Product ID',
+  quantity INT NOT NULL DEFAULT 1 COMMENT 'Quantity',
+  FOREIGN KEY (user_id) REFERENCES users(userID) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) COMMENT='Cart items table';
+
+CREATE TABLE orders (
+                          order_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Order ID',
+                          user_id INT NOT NULL COMMENT 'User ID',
+                          total_amount DECIMAL(10,2) NOT NULL COMMENT 'Order total',
+                          payment_method VARCHAR(50) NOT NULL COMMENT 'Payment method',
+                          status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Order status',
+                          create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+                          FOREIGN KEY (user_id) REFERENCES users(userid)
+) COMMENT='Orders table';

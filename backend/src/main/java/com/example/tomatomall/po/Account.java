@@ -17,6 +17,9 @@ import javax.validation.constraints.Size;
 @Table(name = "users")
 public class Account {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer userId;
+
     @Column(length = 50, nullable = false)
     @NotEmpty(message = "用户名不能为空")
     private String username;

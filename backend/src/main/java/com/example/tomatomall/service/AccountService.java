@@ -7,5 +7,5 @@ public interface AccountService {
     Response<String> createUser(Account account);
     Response<Account> getUserDetail(String username);
     Response<String> updateUser(Account account);
-    Response<String> login(String username, String password);
+    Response<String> login(Account account);
 }

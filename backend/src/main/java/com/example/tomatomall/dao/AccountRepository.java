@@ -13,5 +13,5 @@ public interface AccountRepository extends JpaRepository<Account, String> { // S
 所以findByUsername会变成SELECT * FROM users WHERE username = ?
 findByTelephone会变成SELECT * FROM users WHERE telephone = ?
      */
-    Account findByTelephone(String account);
+    Account findByTelephone(String telephone);
 }
