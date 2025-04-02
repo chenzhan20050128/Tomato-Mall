@@ -3,6 +3,7 @@ package com.example.tomatomall.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -13,44 +14,78 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private final String SECRET_KEY = "tomatomall_secret_key";
-    private final long EXPIRATION_TIME = 86400000; // 1天
+    @Value("${jwt.secret:defaultSecret}")
+    private String secret;
 
-    public String generateToken(String username) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", username);
-        return createToken(claims);
+    @Value("${jwt.expiration:86400000}")
+    private Long expiration; // 默认24小时
+
+    // 从token中获取用户ID
+    public Integer getUserIdFromToken(String token) {
+        try {
+            Claims claims = getClaimsFromToken(token);
+            return Integer.valueOf(claims.get("userId").toString());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    private String createToken(Map<String, Object> claims) {
+    // 生成token
+    public String generateToken(Integer userId, String username) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("username", username);
+        return doGenerateToken(claims);
+    }
+
+    private Claims getClaimsFromToken(String token) {
+        return Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    private String doGenerateToken(Map<String, Object> claims) {
+        Date createdDate = new Date();
+        Date expirationDate = new Date(createdDate.getTime() + expiration);
+
         return Jwts.builder()
                 .setClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setIssuedAt(createdDate)
+                .setExpiration(expirationDate)
+                .signWith(SignatureAlgorithm.HS512, secret)
                 .compact();
     }
 
-    public Boolean validateToken(String token) {
+    public String extractUsername(String token) {
         try {
-            final Claims claims = extractAllClaims(token);
-            final Date expiration = claims.getExpiration();
-            return expiration.after(new Date());
+            Claims claims = getClaimsFromToken(token);
+            return claims.get("username", String.class);
         } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // 验证token是否有效
+    public boolean validateToken(String token) {
+        try {
+            // 验证token是否过期
+            final Date expiration = getExpirationDateFromToken(token);
+            return !expiration.before(new Date());
+        } catch (Exception e) {
+            // 解析失败或其他异常表示token无效
             return false;
         }
     }
 
-    public String extractUsername(String token) {
-        return extractClaim(token, claims -> claims.get("userId", String.class));
+    // 从token中获取过期时间
+    private Date getExpirationDateFromToken(String token) {
+        return getClaimFromToken(token, Claims::getExpiration);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
+    // 从token中获取指定类型的声明
+    private <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = getClaimsFromToken(token);
         return claimsResolver.apply(claims);
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
     }
 }

@@ -45,7 +45,7 @@ public class AccountController {
      */
     @PostMapping("/login")
     public Response<String> login(@RequestBody Account account, HttpServletResponse response) {
-        Response<String> loginResult = accountService.login(account.getUsername(), account.getPassword());
+        Response<String> loginResult = accountService.login(account);
 
         // 如果登录成功，在响应头中设置token
         if ("200".equals(loginResult.getCode()) && loginResult.getData() != null) {

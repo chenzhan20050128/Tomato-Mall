@@ -18,7 +18,8 @@ public class JwtInterceptor implements HandlerInterceptor {
     private JwtUtil jwtUtil;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
         // 放行OPTIONS请求
         if ("OPTIONS".equals(request.getMethod())) {
             return true;
@@ -39,6 +40,12 @@ public class JwtInterceptor implements HandlerInterceptor {
         if (token != null && jwtUtil.validateToken(token)) {
             // 验证通过，将用户名放入请求属性中
             request.setAttribute("username", jwtUtil.extractUsername(token));
+
+            Integer userId = jwtUtil.getUserIdFromToken(token);
+            if (userId != null) {
+                // 将用户ID添加到请求属性中
+                request.setAttribute("userId", userId);
+            }
             return true;
         }
 
