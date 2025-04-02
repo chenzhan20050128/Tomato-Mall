@@ -319,7 +319,7 @@
     width: 15px;
     height: 15px;
     background-color: #2ecc71;
-    border-radius: 50% 50% 0 50%;
+    border-radius: 0% 50% 0 50%;
     transform: translateX(-50%) rotate(-45deg);
 }
 

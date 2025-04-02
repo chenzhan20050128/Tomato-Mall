@@ -7,7 +7,7 @@ CREATE TABLE users (
     telephone VARCHAR(11) UNIQUE COMMENT '用户手机号，格式需符合1开头的11位数字', 
     email VARCHAR(100) COMMENT '用户邮箱，格式需符合邮箱规范',
     location VARCHAR(255) COMMENT '用户所在地',
-    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家',
+    role VARCHAR(50 ) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家',
     PRIMARY KEY (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
