@@ -21,7 +21,11 @@ public class AccountController {
      */
     @GetMapping("/{username}")
     public Response<Account> getUser(@PathVariable String username) {
-        return accountService.getUserDetail(username);
+        Account account = accountService.getUserDetail(username);
+        if (account != null) {
+            return Response.buildSuccess(account);
+        }
+        return Response.buildFailure("用户不存在", "400");
     }
 
     /**
@@ -29,7 +33,12 @@ public class AccountController {
      */
     @PostMapping()
     public Response<String> createUser(@Valid @RequestBody Account account) {
-        return accountService.createUser(account);
+        String result = accountService.createUser(account);
+        if (result == "注册成功"){
+            return Response.buildSuccess(result);
+        }
+
+        return Response.buildFailure(result,"400");
     }
 
     /**
@@ -37,7 +46,11 @@ public class AccountController {
      */
     @PutMapping()
     public Response<String> updateUser(@Valid @RequestBody Account account) {
-        return accountService.updateUser(account);
+        String result = accountService.updateUser(account);
+        if (result == "更新成功"){
+            return Response.buildSuccess(result);
+        }
+        return Response.buildFailure(result,"400");
     }
 
     /**

@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/tomatomall?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: root
+    password: cz050128
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+  security:
+    bcrypt:
+      enabled: true
+
+jwt:
+  secret: "tomato-mall"
+  # JWT 过期时间，单位毫秒
+  expiration: 86400000
+alipay:
+  appId: 2021000147671450
+  appPrivateKey: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDJRCU+0S48ej2oAbSqv8RFb6ACpmst4IVuaHTlhkNWuk+0Gj5ApeIhUFemB2Q/I1hJbUoeidU/sMT63stBb5RJdayZ6XYYhQeaGE/Ljov/wMGF/ukdruAoVfZGoDCU3M4aSX7xlWaGGmxp8rHFVHq54kRcXXPa8nfAV+oHCky7G6gZnFer+HdC5Urgm3n5MRCshnPzo+wTA0PKnyobhy0/MFauuGog6q5cEH3rHOm9TKtTRGvXaQcaClV8Stemz5lvpfvGWkQDxNjemt31wGwGhjPBMhWls69B0wqicodfghZ6rb9JgzVXHVro+aFkxuC+QrE/y2J51ORMgwUg7a+VAgMBAAECggEBAINr9g4gtVpUT/JmurxMYDMfApL4bEAWvcosdzhxBYOaQPVPtZqtNw2d0r3dUb5QrBO2Q5HRWugt21IdLQfbfi7BoiUWZ0D3jNE4UtKOkCg+i5+dpkb1q/VqvFe9vjtWO1a66yOA9ONYWbaM/TvnQAQlFZJii4ZKkZuNTImwVg5OhnHdrTiE/UxBI0MpA9cx2v5GHf8yfDrxkGvhyS6Ur5Ew8dXmVfom9UlpSwN18EfoIO2Ub5K1k4t7xXVZmz0ShFzF7TdKX6wPSCFpWtjeTpvwdZJCuHOOAnPB0zd7GfGkMbe1Xn0YTALeXqL4IqmcMgAOLWK6whJnbjjgNC5ehMECgYEA5CYlCkq2AH/5Yiu/dgk/RpCRmTqSro+ulj6Z2r7hi3E5e+L0VObVr8uFRYyuYb4jzq3FaWG+oRQmilcjgsEQhOhJN69Z6s77uCkzDnIyItINlTm2+BrxiP3XS8lupsVDn6/As+kRAE5iBannywMhCFA6Vu/HNpsKX5eGvhX2KOkCgYEA4dXjumjLvknaKznmlfjiNfp/Zjf+YEK/rat/YBX2dkFYSSZJaetQwmfr7M9SNprDyFU1IpnQmVfu3ekQBYvTAQ4dTrNszI0l8hRhk144Zb0DZWIpnEEUWyk91JdLGq9J0m2Do0jcG8VAOS6dOUGBsRDXeFNXbRSoRdhA7yxzZc0CgYEAwJsPRBwEgHGJeH5UWXK/D3R25nQTZvj3u/FHc+sXf9/rVpIoERD7LzjS3v9ALFYX5qC++xNAmr3nN30PBpC0wG9VeIQ5lch9q2BksPppJwpL20HpHJWqeStLObjpCDOavlHijj/hU
+  alipayPublicKey: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl33UntFqkA6FSz8TMzYfggCvJyKqnzD10d/lCY49+tg4Vhqnvq8xHYAVym6Lcy+j5HxzX0p2G8QeuCheIN2D/Uiw1Q1b8Dv9rz86by7+u+d7ofqJX5LV1qEHc1aVAM+/psNvGe4+nSQ1Xj/rgieWqV2IQa0QIE43YyqtrJYOoXi14/pLSC6UAsP0KK7XvAmC71nyNSxzcSW8z6inVluv/7v/cITpmtlQHGNj3+K2+cnQ5BKU+mg64Ulchij2ZH/ZHIazGt8UKPk9TAMU2ZClJ883Fci9Df+ebYISd+f2Q9sUXK1vyWf6wBnxm3xwRjVyKpc+guVF1rSab5pivM/7UQIDAQAB
+  notifyUrl: http://q82jdt.natappfree.cc/notify

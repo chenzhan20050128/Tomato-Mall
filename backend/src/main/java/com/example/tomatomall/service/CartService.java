@@ -5,11 +5,11 @@ import com.example.tomatomall.vo.CartVO;
 import com.example.tomatomall.vo.Response;
 
 public interface CartService {
-    Response<CartItem> addCartItem(Integer userId, Integer productId, Integer quantity);
+    CartItem addCartItem(Integer userId, Integer productId, Integer quantity);
 
-    Response<String> removeCartItem(Integer cartItemId);
+    String removeCartItem(Integer cartItemId);
 
-    Response<String> updateCartItemQuantity(Integer cartItemId, Integer quantity);
+    String updateCartItemQuantity(Integer cartItemId, Integer quantity);
 
-    Response<CartVO> getCartItems(Integer userId);
+    CartVO getCartItems(Integer userId);
 }

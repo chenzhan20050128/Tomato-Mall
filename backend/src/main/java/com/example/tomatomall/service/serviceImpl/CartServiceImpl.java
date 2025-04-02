@@ -29,16 +29,16 @@ public class CartServiceImpl implements CartService {
     private StockpileRepository stockpileRepository;
 
     @Override
-    public Response<CartItem> addCartItem(Integer userId, Integer productId, Integer quantity) {
+    public CartItem addCartItem(Integer userId, Integer productId, Integer quantity) {
         Product product = productRepository.findById(productId).orElse(null);
         if (product == null) {
-            return Response.buildFailure("购物车商品不存在", "400");
+            return null;
         }
 
         // 通过 stockpileRepository 获取商品库存
         Stockpile stockpile = stockpileRepository.findByProductId(productId).get();
         if (stockpile == null || stockpile.getAmount() < quantity) {
-            return Response.buildFailure("Insufficient stock", "400");
+            return null;
         }
 
         // 检查用户是否已将该商品添加到购物车
@@ -50,7 +50,7 @@ public class CartServiceImpl implements CartService {
             cartItem = existingItems.get(0);
             int newQuantity = cartItem.getQuantity() + quantity;
             if (stockpile.getAmount() < newQuantity) {
-                return Response.buildFailure("Insufficient stock for requested quantity", "400");
+                return null;
             }
             cartItem.setQuantity(newQuantity);
         } else {
@@ -62,45 +62,45 @@ public class CartServiceImpl implements CartService {
         }
 
         cartItemRepository.save(cartItem);
-        return Response.buildSuccess(cartItem);
+        return cartItem;
     }
 
     @Override
-    public Response<String> removeCartItem(Integer cartItemId) {
+    public String removeCartItem(Integer cartItemId) {
         if (!cartItemRepository.existsById(cartItemId)) {
-            return Response.buildFailure("购物车商品不存在", "400");
+            return "购物车商品不存在";
         }
         cartItemRepository.deleteById(cartItemId);
-        return Response.buildSuccess("删除成功");
+        return "删除成功";
     }
 
     @Override
-    public Response<String> updateCartItemQuantity(Integer cartItemId, Integer quantity) {
+    public String updateCartItemQuantity(Integer cartItemId, Integer quantity) {
         CartItem cartItem = cartItemRepository.findById(cartItemId).orElse(null);
         if (cartItem == null) {
-            return Response.buildFailure("购物车商品不存在", "400");
+            return "购物车商品不存在";
         }
 
         // 通过 stockpileRepository 获取商品库存
         Stockpile stockpile = stockpileRepository.findByProductId(cartItem.getProductId()).get();
         if (stockpile == null || stockpile.getAmount() < quantity) {
-            return Response.buildFailure("Insufficient stock", "400");
+            return "库存不足";
         }
 
         cartItem.setQuantity(quantity);
         cartItemRepository.save(cartItem);
-        return Response.buildSuccess("修改数量成功");
+        return "更新成功";
     }
 
     @Override
-    public Response<CartVO> getCartItems(Integer userId) {
+    public CartVO getCartItems(Integer userId) {
         // 根据用户ID获取购物车项列表
         List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
 
         if (cartItems.isEmpty()) {
             // 购物车为空的情况
             CartVO emptyCart = new CartVO(new ArrayList<>(), 0, BigDecimal.ZERO);
-            return Response.buildSuccess(emptyCart);
+            return emptyCart;
         }
 
         List<CartItemVO> cartItemVOs = new ArrayList<>();
@@ -132,6 +132,6 @@ public class CartServiceImpl implements CartService {
 
         // 创建并返回购物车VO对象
         CartVO cartVO = new CartVO(cartItemVOs, cartItemVOs.size(), totalAmount);
-        return Response.buildSuccess(cartVO);
+        return cartVO;
     }
 }

@@ -24,9 +24,9 @@ public class AccountServiceImpl implements AccountService {
     private JwtUtil jwtUtil;
 
     @Override
-    public Response<String> createUser(Account account) {
+    public String createUser(Account account) {
         if (accountRepository.findByUsername(account.getUsername()) != null) {
-            return Response.buildFailure("用户名已存在", "400");
+            return "用户名已存在";
         }
 
         // 密码加密存储
@@ -38,24 +38,24 @@ public class AccountServiceImpl implements AccountService {
         }
 
         accountRepository.save(account);
-        return Response.buildSuccess("注册成功");
+        return "注册成功";
     }
 
     @Override
-    public Response<Account> getUserDetail(String username) {
+    public Account getUserDetail(String username) {
         Account account = accountRepository.findByUsername(username);
         if (account == null) {
-            return Response.buildFailure("用户不存在", "400");
+            return null;
         }
         account.setPassword(null); // 返回用户信息时，密码字段设为 null，防止泄露
-        return Response.buildSuccess(account);
+        return account;
     }
 
     @Override
-    public Response<String> updateUser(Account account) {
+    public String updateUser(Account account) {
         Account existingAccount = accountRepository.findByUsername(account.getUsername());
         if (existingAccount == null) {
-            return Response.buildFailure("用户不存在", "400");
+            return "用户不存在";
         }
         // 更新用户信息，允许部分更新
         if (account.getName() != null) {
@@ -80,7 +80,7 @@ public class AccountServiceImpl implements AccountService {
             existingAccount.setRole(account.getRole());
         }
         accountRepository.save(existingAccount);
-        return Response.buildSuccess("更新成功");
+        return "更新成功";
     }
 
     @Override

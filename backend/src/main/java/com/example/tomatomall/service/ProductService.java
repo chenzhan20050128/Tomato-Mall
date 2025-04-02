@@ -6,11 +6,11 @@ import com.example.tomatomall.vo.Response;
 import java.util.List;
 
 public interface ProductService {
-    Response<List<Product>> getAllProducts();
-    Response<Product> getProduct(Integer id);
-    Response<Product> createProduct(Product product);
-    Response<String> updateProduct(Product product);
-    Response<String> deleteProduct(Integer id);
-    Response<String> updateStock(Integer productId, Integer amount);
-    Response<Stockpile> getStock(Integer productId);
+    List<Product> getAllProducts();
+    Product getProduct(Integer id);
+    Product createProduct(Product product);
+    String updateProduct(Product product);
+    String deleteProduct(Integer id);
+    String updateStock(Integer productId, Integer amount);
+    Stockpile getStock(Integer productId);
 }
