@@ -89,12 +89,12 @@ public class AccountServiceImpl implements AccountService {
             return Response.buildFailure("账号或密码不能为空", "400");
         }
         Account userAccount = null;
-        // 判断输入的是手机号还是用户名
-        if (account.getTelephone().matches("^1\\d{10}$")) {
-            userAccount = accountRepository.findByTelephone(account.getTelephone());
-        } else {
-            userAccount = accountRepository.findByUsername(account.getUsername());
-        }
+//        // 判断输入的是手机号还是用户名
+//        if (account.getTelephone().matches("^1\\d{10}$")) {
+//            userAccount = accountRepository.findByTelephone(account.getTelephone());
+//        } else {
+        userAccount = accountRepository.findByUsername(account.getUsername());
+        //}
         // 先检查用户是否存在
         if (userAccount == null) {
             return Response.buildFailure("用户不存在/用户密码错误", "400");

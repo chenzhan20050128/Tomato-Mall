@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
+                       userid INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
     username VARCHAR(50) NOT NULL COMMENT '用户名，不允许为空',
     password VARCHAR(100) NOT NULL COMMENT '用户密码，仅参与插入操作',
     name VARCHAR(50) NOT NULL COMMENT '用户姓名，不允许为空',
@@ -7,8 +8,7 @@ CREATE TABLE users (
     telephone VARCHAR(11) UNIQUE COMMENT '用户手机号，格式需符合1开头的11位数字', 
     email VARCHAR(100) COMMENT '用户邮箱，格式需符合邮箱规范',
     location VARCHAR(255) COMMENT '用户所在地',
-    role VARCHAR(50 ) NOT NULL DEFAULT 'user' COMMENT '用户角色：1-管理员，2-用户，3-商家',
-    PRIMARY KEY (username)
+    role VARCHAR(50) NOT NULL DEFAULT 'user' COMMENT '用户角色 admin,user,merchant'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 
@@ -208,3 +208,44 @@ INSERT INTO stockpiles (product_id, amount, frozen) VALUES
                                                         (1, 100, 10),
                                                         (2, 80, 5),
                                                         (3, 120, 15);
+
+
+DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS orders;
+
+CREATE TABLE carts (
+  cart_item_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Cart item ID',
+  user_id INT NOT NULL COMMENT 'User ID',
+  product_id INT NOT NULL COMMENT 'Product ID',
+  quantity INT NOT NULL DEFAULT 1 COMMENT 'Quantity',
+  FOREIGN KEY (user_id) REFERENCES users(userID) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) COMMENT='Cart items table';
+
+CREATE TABLE orders (
+                          order_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Order ID',
+                          user_id INT NOT NULL COMMENT 'User ID',
+                          total_amount DECIMAL(10,2) NOT NULL COMMENT 'Order total',
+                          payment_method VARCHAR(50) NOT NULL COMMENT 'Payment method',
+                          status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Order status',
+                          create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+                          FOREIGN KEY (user_id) REFERENCES users(userid)
+) COMMENT='Orders table';
+
+
+
+-- Insert data into carts table
+INSERT INTO carts (user_id, product_id, quantity) VALUES
+                                                      (1, 1, 2),  -- User 1 adds 2 of product 1
+                                                      (1, 2, 1),  -- User 1 adds 1 of product 2
+                                                      (2, 3, 3),  -- User 2 adds 3 of product 3
+                                                      (3, 1, 1),  -- User 3 adds 1 of product 1
+                                                      (3, 2, 2);  -- User 3 adds 2 of product 2
+
+-- Insert data into orders table
+INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES
+                                                                       (1, 258.00, 'Credit Card', 'SHIPPED'),   -- User 1 places an order
+                                                                       (2, 267.00, 'PayPal', 'DELIVERED'),        -- User 2 places an order
+                                                                       (3, 177.00, 'Credit Card', 'PENDING'),  -- User 3 places an order
+                                                                       (4, 99.50, 'PayPal', 'PROCESSING'),  -- User 4 places an order
+                                                                        (5, 59.00, 'Credit Card', 'SHIPPED');   -- User 5 places an order
