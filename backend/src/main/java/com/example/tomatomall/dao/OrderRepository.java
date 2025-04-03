@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
-    List<Order> findByUserId(Long userId); // 根据用户ID查找订单
+public interface OrderRepository extends JpaRepository<Order, Integer> {
+    List<Order> findByUserId(Integer userId); // 根据用户ID查找订单
 }

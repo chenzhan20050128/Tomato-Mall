@@ -13,10 +13,10 @@ import java.sql.Timestamp;
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long orderId; // 订单ID
+    private Integer orderId; // 订单ID
 
     @Column(nullable = false)
-    private Long userId; // 用户ID
+    private Integer userId; // 用户ID
 
     @Column(nullable = false, name = "total_amount")
     private BigDecimal totalAmount; // 总金额

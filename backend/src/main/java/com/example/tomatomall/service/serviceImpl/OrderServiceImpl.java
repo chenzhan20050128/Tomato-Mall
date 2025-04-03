@@ -14,8 +14,11 @@ import com.example.tomatomall.po.CartItem;
 import com.example.tomatomall.dao.CartItemRepository;
 import com.example.tomatomall.dao.OrderRepository;
 import com.example.tomatomall.dao.ProductRepository;
+import com.example.tomatomall.po.Stockpile;
 import com.example.tomatomall.service.OrderService;
+import com.example.tomatomall.service.ProductService;
 import com.example.tomatomall.vo.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +40,8 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     private ProductRepository productRepository;
 
-
+    @Autowired
+    private ProductService productService;
 
     @Resource
     private AliPayConfig aliPayConfig;
@@ -49,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public Order createOrder(Long userId, List<Long> cartItemIds, Object shippingAddress, String paymentMethod) {
+    public Order createOrder(Integer userId, List<Integer> cartItemIds, Object shippingAddress, String paymentMethod) {
         // 获取购物车商品
         List<CartItem> cartItems = cartRepository.findAllByCartItemIdIn(cartItemIds);
         if (cartItems.isEmpty()) {
@@ -63,7 +67,12 @@ public class OrderServiceImpl implements OrderService {
                     .orElseThrow(() -> new RuntimeException("商品未找到: " + cartItem.getProductId()));
 
             // 检查库存
-            if (product.getStock() < cartItem.getQuantity()) {
+            Stockpile stockpile = productService.getStock(cartItem.getProductId());
+            if (stockpile == null) {
+                throw new RuntimeException("商品库存未找到: " + product.getTitle());
+            }
+            if (stockpile.getAmount() < cartItem.getQuantity())
+            {
                 throw new RuntimeException("商品库存不足: " + product.getTitle());
             }
 
@@ -73,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 创建订单
-        Orders order = new Orders();
+        Order order = new Order();
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
         order.setPaymentMethod(paymentMethod);
@@ -83,27 +92,27 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Order getOrderById(Long orderId) {
+    public Order getOrderById(Integer orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("订单未找到"));
     }
 
     @Override
-    public List<Order> getOrdersByUserId(Long userId) {
+    public List<Order> getOrdersByUserId(Integer userId) {
         return orderRepository.findByUserId(userId);
     }
 
     @Override
     @Transactional
-    public Order updateOrderStatus(Long orderId, String status) {
-        Orders order = getOrderById(orderId);
+    public Order updateOrderStatus(Integer orderId, String status) {
+        Order order = getOrderById(orderId);
         order.setStatus(status);
         return orderRepository.save(order);
     }
 
     @Override
-    public Map<String, Object> generatePayment(Long orderId) throws Exception {
-        Orders order = getOrderById(orderId);
+    public Map<String, Object> generatePayment(Integer orderId) throws Exception {
+        Order order = getOrderById(orderId);
 
         AlipayClient alipayClient = new DefaultAlipayClient(
                 GATEWAY_URL,
@@ -135,6 +144,7 @@ public class OrderServiceImpl implements OrderService {
         result.put("paymentMethod", order.getPaymentMethod());
 
         return result;
+
     }
 
     @Override
@@ -149,19 +159,24 @@ public class OrderServiceImpl implements OrderService {
             String gmtPayment = params.get("gmt_payment");
 
             // 更新订单状态
-            Orders order = getOrderById(Long.valueOf(outTradeNo));
+            Order order = getOrderById(Integer.valueOf(outTradeNo));
             order.setStatus("SUCCESS"); // 成功状态
             order.setTradeNo(tradeNo);
             order.setPaymentTime(Timestamp.valueOf(gmtPayment.replace("T", " ").substring(0, 19)));
             orderRepository.save(order);
 
             // 更新商品库存
-            List<Cart> cartItems = cartRepository.findByUserId(order.getUserId());
-            for (Cart cartItem : cartItems) {
+            List<CartItem> cartItems = cartRepository.findByUserId(order.getUserId());
+            for (CartItem cartItem : cartItems) {
                 Product product = productRepository.findById(cartItem.getProductId()).orElse(null);
                 if (product != null) {
-                    product.setStock(product.getStock() - cartItem.getQuantity());
-                    productRepository.save(product);
+                    try{
+                        Stockpile stockpile = productService.getStock(cartItem.getProductId());
+                        Integer newAmount = stockpile.getAmount() - cartItem.getQuantity();
+                        productService.updateStock(cartItem.getProductId(), newAmount);
+                        //cz add in 0402 20:45
+                    }
+                    catch (Exception e){}
                 }
             }
 

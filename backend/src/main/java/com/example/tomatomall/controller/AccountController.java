@@ -3,13 +3,16 @@ package com.example.tomatomall.controller;
 import com.example.tomatomall.po.Account;
 import com.example.tomatomall.service.AccountService;
 import com.example.tomatomall.vo.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.util.Map;
 
 @RestController
+@Slf4j
 @RequestMapping("/api/accounts")
 public class AccountController {
 
@@ -58,13 +61,19 @@ public class AccountController {
      */
     @PostMapping("/login")
     public Response<String> login(@RequestBody Account account, HttpServletResponse response) {
-        Response<String> loginResult = accountService.login(account);
-
-        // 如果登录成功，在响应头中设置token
-        if ("200".equals(loginResult.getCode()) && loginResult.getData() != null) {
-            response.addHeader("token", loginResult.getData());
+        try{
+            Map<String,Object> map = accountService.login(account);
+            String token = (String) map.get("token");
+            String username = (String) map.get("username");
+            Integer userId = (Integer) map.get("userId");
+            log.info("token:{},username:{},userId:{}",token,username,userId);
+            response.setHeader("token",token);
+            response.setHeader("username",username);
+            response.setHeader("userId",String.valueOf(userId));
         }
-
-        return loginResult;
+        catch (IllegalArgumentException e){
+            return Response.buildFailure(e.getMessage(), "400");
+        }
+        return Response.buildSuccess("登录成功");
     }
 }

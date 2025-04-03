@@ -6,12 +6,16 @@ import com.example.tomatomall.po.Account;
 import com.example.tomatomall.service.AccountService;
 import com.example.tomatomall.util.JwtUtil;
 import com.example.tomatomall.vo.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
+@Slf4j
 public class AccountServiceImpl implements AccountService {
 
     @Resource
@@ -84,28 +88,30 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Response<String> login(Account account) {
+    public Map<String,Object> login(Account account) {
         if (account == null || account.getPassword() == null) {
-            return Response.buildFailure("账号或密码不能为空", "400");
+            throw new IllegalArgumentException("用户名或密码不能为空");
         }
         Account userAccount = null;
-        // 判断输入的是手机号还是用户名
-        if (account.getTelephone().matches("^1\\d{10}$")) {
-            userAccount = accountRepository.findByTelephone(account.getTelephone());
-        } else {
-            userAccount = accountRepository.findByUsername(account.getUsername());
-        }
+        userAccount = accountRepository.findByUsername(account.getUsername());
+
         // 先检查用户是否存在
         if (userAccount == null) {
-            return Response.buildFailure("用户不存在/用户密码错误", "400");
+            throw new IllegalArgumentException("用户不存在");
         }
         // 校验密码 - 使用BCrypt对输入的密码和数据库中存储的加密密码进行比对
         if (!bCryptPasswordEncoder.matches(account.getPassword(), userAccount.getPassword())) {
-            return Response.buildFailure("用户不存在/用户密码错误", "400");
+            throw new IllegalArgumentException("密码错误");
         }
         // 生成JWT令牌 cz0401 20:59
-        String token = jwtUtil.generateToken(account.getUserId(), account.getUsername());
+        log.info("AccountService:userId:{}", userAccount.getUserId());
+        log.info("AccountService:username:{}", userAccount.getUsername());
 
-        return Response.buildSuccess(token);
+        String token = jwtUtil.generateToken(userAccount.getUserId(), userAccount.getUsername());
+        Map<String,Object> res = new HashMap<>();
+        res.put("token", token);
+        res.put("username", userAccount.getUsername()); // 使用userAccount
+        res.put("userId", userAccount.getUserId());     // 使用userAccount
+        return res;
     }
 }

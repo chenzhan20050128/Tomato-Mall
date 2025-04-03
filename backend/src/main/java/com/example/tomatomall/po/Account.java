@@ -17,6 +17,7 @@ import javax.validation.constraints.Size;
 @Table(name = "users")
 public class Account {
     @Id
+    @Column(name = "userid")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer userId;
 

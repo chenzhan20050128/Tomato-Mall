@@ -2,7 +2,7 @@ package com.example.tomatomall.controller;
 import com.alipay.easysdk.factory.Factory;
 import com.example.tomatomall.config.AliPayConfig;
 import com.example.tomatomall.po.AliPay;
-import com.example.tomatomall.entity.Orders;
+import com.example.tomatomall.po.Order;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,15 +21,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("alipay")
+@RequestMapping("api/alipay")
 @Transactional(rollbackFor = Exception.class)
 public class AliPayController {
 
     @Resource
     AliPayConfig aliPayConfig;
 
-    @Resource
-    private OrderMapper shopOrderMapper;
     private static final String GATEWAY_URL ="https://openapi-sandbox.dl.alipaydev.com/gateway.do";
     private static final String FORMAT ="JSON";
     private static final String CHARSET ="utf-8";
@@ -84,11 +82,17 @@ public class AliPayController {
                 System.out.println("买家付款时间: " + params.get("gmt_payment"));
                 System.out.println("买家付款金额: " + params.get("buyer_pay_amount"));
                 // 更新订单未已支付
-                Orders order = new Orders();
-                order.setId(Long.valueOf(tradeNo));
-                order.setStatus(2);
+                Order order = new Order();
+                order.setOrderId(Integer.valueOf(tradeNo));
+                order.setStatus("SUCCESS");
 //                order.setCheckoutTime(params.get("gmt_payment"));
-                shopOrderMapper.updateById(order);
+                order.setTradeNo(alipayTradeNo);
+
+
+                System.out.println("订单状态更新成功");
+            } else {
+                // 验签失败
+                System.out.println("验签失败");
             }
         }
         return "success";

@@ -29,9 +29,11 @@ public class JwtInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI();
         String method = request.getMethod();
         // 登录和注册路径不需要验证
-        if (("/api/accounts/login".equals(uri)) ||
-                ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method)) ||
-                uri.startsWith("/api/products") || ("/api/products/**".equals(uri))) {
+
+        if (("/api/accounts/login".equals(uri))
+                || ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method))  // 注册接口
+                || uri.startsWith("/api/products"))
+        {
             return true;
         }
 
