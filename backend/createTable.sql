@@ -5,7 +5,7 @@ DROP TABLE IF EXISTS stockpiles;
 DROP TABLE IF EXISTS specifications;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS users;
-
+DROP TABLE IF EXISTS carts_orders_relation;
 
 CREATE TABLE users (
                        userid INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
@@ -251,3 +251,11 @@ INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES
                                                                        (3, 177.00, 'Credit Card', 'PENDING'),  -- User 3 places an order
                                                                        (4, 99.50, 'PayPal', 'PROCESSING'),  -- User 4 places an order
                                                                        (5, 59.00, 'Credit Card', 'SHIPPED');   -- User 5 places an order
+
+
+
+CREATE TABLE carts_orders_relation (
+                                       id INT AUTO_INCREMENT PRIMARY KEY,
+                                       cartitem_id INT,
+                                       order_id INT
+);

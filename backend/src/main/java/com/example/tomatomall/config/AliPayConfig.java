@@ -26,7 +26,10 @@ public class AliPayConfig {
         // 设置参数（全局只需设置一次）
         Config config = new Config();
         config.protocol = "https";
-        config.gatewayHost = "openapi.alipaydev.com";
+        // 修改网关地址
+        config.gatewayHost = "openapi-sandbox.dl.alipaydev.com"; // 原值为openapi.alipaydev.com
+        //https://openapi-sandbox.dl.alipaydev.com/gateway.do
+
         config.signType = "RSA2";
         config.appId = this.appId;
         config.merchantPrivateKey = this.appPrivateKey;

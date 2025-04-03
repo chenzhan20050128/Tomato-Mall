@@ -8,13 +8,11 @@ import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.easysdk.factory.Factory;
 import com.example.tomatomall.config.AliPayConfig;
-import com.example.tomatomall.po.Order;
-import com.example.tomatomall.po.Product;
-import com.example.tomatomall.po.CartItem;
+import com.example.tomatomall.dao.CartOrderRelationRepository;
+import com.example.tomatomall.po.*;
 import com.example.tomatomall.dao.CartItemRepository;
 import com.example.tomatomall.dao.OrderRepository;
 import com.example.tomatomall.dao.ProductRepository;
-import com.example.tomatomall.po.Stockpile;
 import com.example.tomatomall.service.OrderService;
 import com.example.tomatomall.service.ProductService;
 import com.example.tomatomall.vo.Response;
@@ -28,6 +26,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -39,6 +38,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private ProductRepository productRepository;
+
+    @Autowired
+    private CartOrderRelationRepository cartOrderRelationRepository;
 
     @Autowired
     private ProductService productService;
@@ -54,11 +56,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public Order createOrder(Integer userId, List<Integer> cartItemIds, Object shippingAddress, String paymentMethod) {
-        // 获取购物车商品
-        List<CartItem> cartItems = cartRepository.findAllByCartItemIdIn(cartItemIds);
-        if (cartItems.isEmpty()) {
-            throw new RuntimeException("未找到购物车商品");
-        }
+        // 添加用户权限验证
+        List<CartItem> cartItems = cartItemIds.stream()
+                .map(id -> cartRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("购物车项不存在: " + id)))
+                .filter(item -> item.getUserId().equals(userId)) // 新增权限验证
+                .collect(Collectors.toList());
 
         // 计算总金额并检查库存
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -88,7 +91,18 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentMethod(paymentMethod);
         order.setStatus("PENDING"); // 待支付状态
 
-        return orderRepository.save(order);
+        // 创建订单后保存关联关系
+        Order savedOrder = orderRepository.save(order);
+
+        // 保存购物车-订单关联
+        cartItems.forEach(cartItem -> {
+            CartOrderRelation relation = new CartOrderRelation();
+            relation.setCartItemId(cartItem.getCartItemId());
+            relation.setOrderId(savedOrder.getOrderId());
+            cartOrderRelationRepository.save(relation);
+        });
+
+        return savedOrder;
     }
 
     @Override
@@ -165,21 +179,21 @@ public class OrderServiceImpl implements OrderService {
             order.setPaymentTime(Timestamp.valueOf(gmtPayment.replace("T", " ").substring(0, 19)));
             orderRepository.save(order);
 
-            // 更新商品库存
-            List<CartItem> cartItems = cartRepository.findByUserId(order.getUserId());
+            // 获取订单关联的购物车项
+            List<CartOrderRelation> relations = cartOrderRelationRepository.findByOrderId(order.getOrderId());
+            List<Integer> cartItemIds = relations.stream()
+                    .map(CartOrderRelation::getCartItemId)
+                    .collect(Collectors.toList());
+            List<CartItem> cartItems = cartRepository.findAllByCartItemIdIn(cartItemIds);
             for (CartItem cartItem : cartItems) {
-                Product product = productRepository.findById(cartItem.getProductId()).orElse(null);
-                if (product != null) {
-                    try{
-                        Stockpile stockpile = productService.getStock(cartItem.getProductId());
-                        Integer newAmount = stockpile.getAmount() - cartItem.getQuantity();
-                        productService.updateStock(cartItem.getProductId(), newAmount);
-                        //cz add in 0402 20:45
-                    }
-                    catch (Exception e){}
+                Stockpile stockpile = productService.getStock(cartItem.getProductId());
+                if (stockpile.getAmount() < cartItem.getQuantity()) {
+                    throw new RuntimeException("库存不足，回滚交易");
                 }
+                productService.updateStock(cartItem.getProductId(),
+                        stockpile.getAmount() - cartItem.getQuantity());
             }
-
+            cartRepository.deleteAll(cartItems);
             return true;
         }
 
