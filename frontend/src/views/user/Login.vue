@@ -55,11 +55,6 @@ const handleLogin = async () => {
       // 保存用户信息和token
       sessionStorage.setItem('token', res.data.data) // 后端返回的是直接的token字符串
       sessionStorage.setItem('username', username.value) // 保存用户名
-
-      // 可根据需要保存其他信息
-      if (res.data.role) {
-        sessionStorage.setItem('role', res.data.role)
-      }
       
       ElMessage({
         message: "登录成功",

@@ -43,11 +43,10 @@ public class JwtInterceptor implements HandlerInterceptor {
             // 验证通过，将用户名放入请求属性中
             request.setAttribute("username", jwtUtil.extractUsername(token));
 
-            Integer userId = jwtUtil.getUserIdFromToken(token);
-            if (userId != null) {
-                // 将用户ID添加到请求属性中
-                request.setAttribute("userId", userId);
-            }
+            //Integer userId = jwtUtil.getUserIdFromToken(token);
+            Integer userId = request.getIntHeader("userId");
+            // 将用户ID添加到请求属性中
+            request.setAttribute("userId", userId);
             return true;
         }
 
