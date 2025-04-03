@@ -14,11 +14,20 @@ function hasToken() {
     return token !== null && token !== ''
 }
 
+//判断是否登录 - 设置用户ID
+function hasUserId() {
+    const userId = sessionStorage.getItem('userId')
+    return userId !== null && userId !== ''
+}
+
 // 请求拦截器 - 在发送请求前添加token
 service.interceptors.request.use(
     config => {
         if (hasToken()) {
             config.headers['token'] = sessionStorage.getItem('token')
+        }
+        if (hasUserId()) {
+            config.headers['userId'] = sessionStorage.getItem('userId')
         }
         return config
     },
@@ -55,23 +64,23 @@ service.interceptors.response.use(
                     ElMessage.error('登录已过期，请重新登录')
                     sessionStorage.removeItem('token')
                     sessionStorage.removeItem('username')
-                    
+
                     // 跳转到登录页
                     router.push('/login')
                     break
-                    
+
                 case 403:
                     ElMessage.error('没有权限执行此操作')
                     break
-                    
+
                 case 404:
                     ElMessage.error('请求的资源不存在')
                     break
-                    
+
                 case 500:
                     ElMessage.error('服务器错误，请稍后再试')
                     break
-                    
+
                 default:
                     ElMessage.error(error.response.data?.msg || `请求失败(${error.response.status})`)
             }
@@ -82,7 +91,7 @@ service.interceptors.response.use(
             // 请求配置出错
             ElMessage.error('请求配置错误')
         }
-        
+
         console.error('响应错误:', error)
         return Promise.reject(error)
     }

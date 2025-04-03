@@ -52,6 +52,8 @@ const fetchUserInfo = async () => {
       userInfo.telephone = userData.telephone
       userInfo.email = userData.email
       userInfo.location = userData.location
+      sessionStorage.setItem('role', userData.role)
+      sessionStorage.setItem('userId', userData.userId)
       
       // 初始化编辑表单
       editForm.username = userData.username
