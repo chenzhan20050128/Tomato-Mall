@@ -34,6 +34,7 @@ public class JwtInterceptor implements HandlerInterceptor {
 
         if (("/api/accounts/login".equals(uri))
                 || ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method))  // 注册接口
+                || (uri.startsWith("/api/orders/notify"))  //支付宝的回调地址放行
         )
         {
             return true;

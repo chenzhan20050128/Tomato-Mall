@@ -184,7 +184,8 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(totalAmount);
         order.setPaymentMethod(paymentMethod);
         order.setStatus("PENDING");
-        order.setLockExpireTime(new Timestamp(System.currentTimeMillis() + 30 * 60 * 1000));
+        order.setLockExpireTime(new Timestamp(System.currentTimeMillis() + 120 * 60 * 1000));
+        //为了调试方便 我先设置120分钟的过期时间 modified by cz on 4.9 at 20:32
         log.info("创建订单: 用户ID {}, 支付方式 {}, 总金额 {}", userId, paymentMethod, totalAmount);
         return orderRepository.save(order);
     }
