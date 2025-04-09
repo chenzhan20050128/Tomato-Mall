@@ -1,5 +1,6 @@
 package com.example.tomatomall.controller;
 
+import com.example.tomatomall.dto.AmountRequest;
 import com.example.tomatomall.po.Product;
 import com.example.tomatomall.po.Stockpile;
 import com.example.tomatomall.service.ProductService;
@@ -77,10 +78,10 @@ public class ProductController {
     @PatchMapping("/stockpile/{productId}")
     public Response<String> updateStock(
             @PathVariable Integer productId,
-            @RequestParam(value = "amount", required = true) Integer amount) {
+            @RequestBody AmountRequest amountRequest) {
         try {
-            productService.updateStock(productId, amount);
-            return Response.buildSuccess("库存更新成功");
+            productService.updateStock(productId, amountRequest.getAmount());
+            return Response.buildSuccess("调整库存成功");
         } catch (RuntimeException e) {
             return Response.buildFailure(e.getMessage(), "400");
         } catch (Exception e) {

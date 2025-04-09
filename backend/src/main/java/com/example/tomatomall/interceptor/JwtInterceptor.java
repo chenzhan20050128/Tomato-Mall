@@ -3,6 +3,7 @@ package com.example.tomatomall.interceptor;
 import com.example.tomatomall.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.tomatomall.vo.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class JwtInterceptor implements HandlerInterceptor {
 
     @Autowired
@@ -32,7 +34,7 @@ public class JwtInterceptor implements HandlerInterceptor {
 
         if (("/api/accounts/login".equals(uri))
                 || ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method))  // 注册接口
-                || uri.startsWith("/api/products"))
+        )
         {
             return true;
         }
@@ -41,12 +43,12 @@ public class JwtInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
         if (token != null && jwtUtil.validateToken(token)) {
             // 验证通过，将用户名放入请求属性中
-            request.setAttribute("username", jwtUtil.extractUsername(token));
-
-            //Integer userId = jwtUtil.getUserIdFromToken(token);
-            Integer userId = request.getIntHeader("userId");
+            String username = jwtUtil.extractUsername(token);
+            request.setAttribute("username", username);
+            Integer userId = jwtUtil.getUserIdFromToken(token);
             // 将用户ID添加到请求属性中
             request.setAttribute("userId", userId);
+            log.info("拦截器在request.setAttribute设置了用户ID: {} 用户名: {}", userId,username);
             return true;
         }
 

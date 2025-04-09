@@ -1,11 +1,13 @@
 -- 删除已存在的表（注意删除顺序，先删除有外键引用的表）
+DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS carts;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS stockpiles;
 DROP TABLE IF EXISTS specifications;
-DROP TABLE IF EXISTS products;
+
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS carts_orders_relation;
+DROP TABLE IF EXISTS advertisements;
 
 CREATE TABLE users (
                        userid INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
@@ -167,9 +169,10 @@ CREATE TABLE specifications (
                                 id INT AUTO_INCREMENT PRIMARY KEY COMMENT '规格id',
                                 item VARCHAR(50) NOT NULL COMMENT '规格名称，不允许为空',
                                 value VARCHAR(255) NOT NULL COMMENT '规格内容，不允许为空',
-                                product_id INT NOT NULL COMMENT '所属商品id，不允许为空',
-                                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+                                product_id INT NOT NULL COMMENT '所属商品id，不允许为空'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品规格表';
+
+
 
 -- 创建商品库存表
 CREATE TABLE stockpiles (
@@ -177,7 +180,8 @@ CREATE TABLE stockpiles (
                             product_id INT NOT NULL COMMENT '所属商品id，不允许为空',
                             amount INT NOT NULL DEFAULT 0 COMMENT '商品库存数，指可卖的商品数量，不允许为空',
                             frozen INT NOT NULL DEFAULT 0 COMMENT '商品库存冻结数，指不可卖的商品数量，不允许为空',
-                            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+                            locked_amount INT NOT NULL DEFAULT 0 COMMENT '锁定库存数，指已被锁定但未支付的商品数量，不允许为空',
+                            lock_expire_time DATETIME NULL COMMENT '锁定过期时间, 超过此时间自动释放锁定库存'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品库存表';
 
 -- 插入商品数据
@@ -208,30 +212,29 @@ INSERT INTO specifications (item, value, product_id) VALUES
 ('出版日期', '2016-04-01', 3);
 
 -- 插入库存数据
-INSERT INTO stockpiles (product_id, amount, frozen) VALUES
-                                                        (1, 100, 10),
-                                                        (2, 80, 5),
-                                                        (3, 120, 15);
-
-
+INSERT INTO stockpiles (product_id, amount, frozen, locked_amount, lock_expire_time) VALUES
+                                                                                         (1, 100, 10, 0, NULL),
+                                                                                         (2, 80, 5, 0, NULL),
+                                                                                         (3, 120, 15, 0, NULL);
 
 CREATE TABLE carts (
                        cart_item_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Cart item ID',
                        user_id INT NOT NULL COMMENT 'User ID',
                        product_id INT NOT NULL COMMENT 'Product ID',
-                       quantity INT NOT NULL DEFAULT 1 COMMENT 'Quantity',
-                       FOREIGN KEY (user_id) REFERENCES users(userID) ON DELETE CASCADE,
-                       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+                       quantity INT NOT NULL DEFAULT 1 COMMENT 'Quantity'
 ) COMMENT='Cart items table';
 
 CREATE TABLE orders (
                         order_id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Order ID',
                         user_id INT NOT NULL COMMENT 'User ID',
+                        username VARCHAR(50) NOT NULL COMMENT 'Username',
                         total_amount DECIMAL(10,2) NOT NULL COMMENT 'Order total',
                         payment_method VARCHAR(50) NOT NULL COMMENT 'Payment method',
-                        status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Order status',
+                        status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Order status (PENDING, SUCCESS, FAILED, TIMEOUT)',
                         create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
-                        FOREIGN KEY (user_id) REFERENCES users(userid)
+                        trade_no VARCHAR(255) COMMENT 'Alipay trade number',
+                        payment_time TIMESTAMP COMMENT 'Payment time',
+                        lock_expire_time DATETIME COMMENT 'Inventory lock time'
 ) COMMENT='Orders table';
 
 
@@ -244,18 +247,19 @@ INSERT INTO carts (user_id, product_id, quantity) VALUES
                                                       (3, 1, 1),  -- User 3 adds 1 of product 1
                                                       (3, 2, 2);  -- User 3 adds 2 of product 2
 
--- Insert data into orders table
-INSERT INTO orders (user_id, total_amount, payment_method, status) VALUES
-                                                                       (1, 258.00, 'Credit Card', 'SHIPPED'),   -- User 1 places an order
-                                                                       (2, 267.00, 'PayPal', 'DELIVERED'),        -- User 2 places an order
-                                                                       (3, 177.00, 'Credit Card', 'PENDING'),  -- User 3 places an order
-                                                                       (4, 99.50, 'PayPal', 'PROCESSING'),  -- User 4 places an order
-                                                                       (5, 59.00, 'Credit Card', 'SHIPPED');   -- User 5 places an order
-
-
 
 CREATE TABLE carts_orders_relation (
                                        id INT AUTO_INCREMENT PRIMARY KEY,
                                        cartitem_id INT,
                                        order_id INT
 );
+
+
+
+CREATE TABLE advertisements (
+                                id INT AUTO_INCREMENT PRIMARY KEY COMMENT '广告id',
+                                title VARCHAR(50) NOT NULL COMMENT '广告标题，不允许为空',
+                                content VARCHAR(500) NOT NULL COMMENT '广告内容',
+                                image_url VARCHAR(500) NOT NULL COMMENT '广告图片url',
+                                product_id INT NOT NULL COMMENT '所属商品id，不允许为空'
+) COMMENT='广告表';

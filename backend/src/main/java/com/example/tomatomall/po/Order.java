@@ -18,6 +18,9 @@ public class Order {
     @Column(nullable = false)
     private Integer userId; // 用户ID
 
+    @Column(nullable = false,name = "username")
+    private String username; // 用户名 逆天67生成订单需要返回 好离谱 0409 19:54
+
     @Column(nullable = false, name = "total_amount")
     private BigDecimal totalAmount; // 总金额
 
@@ -37,4 +40,7 @@ public class Order {
 
     @Column(name = "payment_time")
     private Timestamp paymentTime; // 支付时间
+
+    @Column(name = "lock_expire_time")
+    private Timestamp lockExpireTime; // 库存锁定时间
 }

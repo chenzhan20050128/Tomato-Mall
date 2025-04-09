@@ -3,6 +3,8 @@ package com.example.tomatomall.po;
 
 import lombok.Data;
 import javax.persistence.*;
+import java.sql.Timestamp;
+import java.util.Date;
 
 @Data
 @Entity
@@ -20,4 +22,10 @@ public class Stockpile {
 
     @Column(nullable = false)
     private Integer frozen;
+
+    @Column(name = "locked_amount")
+    private Integer lockedAmount = 0; // 新增锁定库存字段
+
+    @Column(name = "lock_expire_time")
+    private Timestamp lockExpireTime;
 }

@@ -24,10 +24,17 @@ public class AccountController {
      */
     @GetMapping("/{username}")
     public Response<Account> getUser(@PathVariable String username) {
+        log.info("getUser: " + username);
+        if (username == null || username.equals("")) {
+            return Response.buildFailure("用户名不能为空", "400");
+        }
         Account account = accountService.getUserDetail(username);
+        log.info("getUser: " + account);
         if (account != null) {
+            log.info("getUser success: " + account.getUsername());
             return Response.buildSuccess(account);
         }
+        log.info("getUser failure: " + username);
         return Response.buildFailure("用户不存在", "400");
     }
 
@@ -61,9 +68,10 @@ public class AccountController {
      */
     @PostMapping("/login")
     public Response<String> login(@RequestBody Account account, HttpServletResponse response) {
+        String token = "";
         try{
             Map<String,Object> map = accountService.login(account);
-            String token = (String) map.get("token");
+            token = (String) map.get("token");
             String username = (String) map.get("username");
             Integer userId = (Integer) map.get("userId");
             log.info("token:{},username:{},userId:{}",token,username,userId);
@@ -74,6 +82,6 @@ public class AccountController {
         catch (IllegalArgumentException e){
             return Response.buildFailure(e.getMessage(), "400");
         }
-        return Response.buildSuccess("登录成功");
+        return Response.buildSuccess(token);
     }
 }

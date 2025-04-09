@@ -2,14 +2,13 @@ package com.example.tomatomall.service;
 
 import com.example.tomatomall.po.CartItem;
 import com.example.tomatomall.vo.CartVO;
-import com.example.tomatomall.vo.Response;
 
 public interface CartService {
     CartItem addCartItem(Integer userId, Integer productId, Integer quantity);
 
-    String removeCartItem(Integer cartItemId);
+    void removeCartItem(Integer cartItemId);
 
-    String updateCartItemQuantity(Integer cartItemId, Integer quantity);
+    void updateCartItemQuantity(Integer cartItemId, Integer quantity);
 
     CartVO getCartItems(Integer userId);
 }

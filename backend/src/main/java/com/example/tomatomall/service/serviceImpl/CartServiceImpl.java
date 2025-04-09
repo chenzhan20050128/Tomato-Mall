@@ -9,7 +9,6 @@ import com.example.tomatomall.po.Stockpile;
 import com.example.tomatomall.service.CartService;
 import com.example.tomatomall.vo.CartItemVO;
 import com.example.tomatomall.vo.CartVO;
-import com.example.tomatomall.vo.Response;
 import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.List;
@@ -30,15 +29,15 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartItem addCartItem(Integer userId, Integer productId, Integer quantity) {
-        Product product = productRepository.findById(productId).orElse(null);
-        if (product == null) {
-            return null;
-        }
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("商品不存在"));
 
         // 通过 stockpileRepository 获取商品库存
-        Stockpile stockpile = stockpileRepository.findByProductId(productId).get();
-        if (stockpile == null || stockpile.getAmount() < quantity) {
-            return null;
+        Stockpile stockpile = stockpileRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("商品库存信息不存在"));
+
+        if (stockpile.getAmount() < quantity) {
+            throw new RuntimeException("库存不足");
         }
 
         // 检查用户是否已将该商品添加到购物车
@@ -50,7 +49,7 @@ public class CartServiceImpl implements CartService {
             cartItem = existingItems.get(0);
             int newQuantity = cartItem.getQuantity() + quantity;
             if (stockpile.getAmount() < newQuantity) {
-                return null;
+                throw new RuntimeException("库存不足，无法添加更多数量");
             }
             cartItem.setQuantity(newQuantity);
         } else {
@@ -61,35 +60,32 @@ public class CartServiceImpl implements CartService {
             cartItem.setQuantity(quantity);
         }
 
-        cartItemRepository.save(cartItem);
-        return cartItem;
+        return cartItemRepository.save(cartItem);
     }
 
     @Override
-    public String removeCartItem(Integer cartItemId) {
+    public void removeCartItem(Integer cartItemId) {
         if (!cartItemRepository.existsById(cartItemId)) {
-            return "购物车商品不存在";
+            throw new RuntimeException("购物车商品不存在");
         }
         cartItemRepository.deleteById(cartItemId);
-        return "删除成功";
     }
 
     @Override
-    public String updateCartItemQuantity(Integer cartItemId, Integer quantity) {
-        CartItem cartItem = cartItemRepository.findById(cartItemId).orElse(null);
-        if (cartItem == null) {
-            return "购物车商品不存在";
-        }
+    public void updateCartItemQuantity(Integer cartItemId, Integer quantity) {
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new RuntimeException("购物车商品不存在"));
 
         // 通过 stockpileRepository 获取商品库存
-        Stockpile stockpile = stockpileRepository.findByProductId(cartItem.getProductId()).get();
-        if (stockpile == null || stockpile.getAmount() < quantity) {
-            return "库存不足";
+        Stockpile stockpile = stockpileRepository.findByProductId(cartItem.getProductId())
+                .orElseThrow(() -> new RuntimeException("商品库存信息不存在"));
+
+        if (stockpile.getAmount() < quantity) {
+            throw new RuntimeException("库存不足");
         }
 
         cartItem.setQuantity(quantity);
         cartItemRepository.save(cartItem);
-        return "更新成功";
     }
 
     @Override
@@ -108,26 +104,26 @@ public class CartServiceImpl implements CartService {
 
         // 遍历购物车项，获取商品详情并计算总金额
         for (CartItem item : cartItems) {
-            Product product = productRepository.findById(item.getProductId()).orElse(null);
-            if (product != null) {
-                CartItemVO cartItemVO = new CartItemVO();
-                cartItemVO.setCartItemId(item.getCartItemId());
-                cartItemVO.setProductId(product.getId());
-                cartItemVO.setTitle(product.getTitle());
-                cartItemVO.setPrice(product.getPrice());
-                cartItemVO.setDescription(product.getDescription());
-                cartItemVO.setCover(product.getCover());
-                cartItemVO.setDetail(product.getDetail());
-                cartItemVO.setQuantity(item.getQuantity());
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("商品不存在，ID: " + item.getProductId()));
 
-                cartItemVOs.add(cartItemVO);
+            CartItemVO cartItemVO = new CartItemVO();
+            cartItemVO.setCartItemId(item.getCartItemId());
+            cartItemVO.setProductId(product.getId());
+            cartItemVO.setTitle(product.getTitle());
+            cartItemVO.setPrice(product.getPrice());
+            cartItemVO.setDescription(product.getDescription());
+            cartItemVO.setCover(product.getCover());
+            cartItemVO.setDetail(product.getDetail());
+            cartItemVO.setQuantity(item.getQuantity());
 
-                // 计算当前项的小计并添加到总金额
-                BigDecimal itemPrice = product.getPrice();
-                BigDecimal quantity = new BigDecimal(item.getQuantity());
-                BigDecimal itemTotal = itemPrice.multiply(quantity);
-                totalAmount = totalAmount.add(itemTotal);
-            }
+            cartItemVOs.add(cartItemVO);
+
+            // 计算当前项的小计并添加到总金额
+            BigDecimal itemPrice = product.getPrice();
+            BigDecimal quantity = new BigDecimal(item.getQuantity());
+            BigDecimal itemTotal = itemPrice.multiply(quantity);
+            totalAmount = totalAmount.add(itemTotal);
         }
 
         // 创建并返回购物车VO对象

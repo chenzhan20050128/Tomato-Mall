@@ -8,27 +8,30 @@ import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.easysdk.factory.Factory;
 import com.example.tomatomall.config.AliPayConfig;
-import com.example.tomatomall.dao.CartOrderRelationRepository;
+import com.example.tomatomall.dao.*;
 import com.example.tomatomall.po.*;
-import com.example.tomatomall.dao.CartItemRepository;
-import com.example.tomatomall.dao.OrderRepository;
-import com.example.tomatomall.dao.ProductRepository;
 import com.example.tomatomall.service.OrderService;
 import com.example.tomatomall.service.ProductService;
+import com.example.tomatomall.service.StockpileService;
 import com.example.tomatomall.vo.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
     @Resource
     private OrderRepository orderRepository;
@@ -43,7 +46,16 @@ public class OrderServiceImpl implements OrderService {
     private CartOrderRelationRepository cartOrderRelationRepository;
 
     @Autowired
+    private StockpileRepository stockpileRepository;
+
+    @Autowired
     private ProductService productService;
+
+    @Autowired
+    private StockpileService stockpileService;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @Resource
     private AliPayConfig aliPayConfig;
@@ -52,62 +64,154 @@ public class OrderServiceImpl implements OrderService {
     private static final String FORMAT = "JSON";
     private static final String CHARSET = "utf-8";
     private static final String SIGN_TYPE = "RSA2";
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    private final ConcurrentHashMap<Integer, ReentrantLock> productLocks = new ConcurrentHashMap<>();
+
+    //使用可重入锁 added by cz on 4.9 at 19:47
 
     @Override
     @Transactional
+    /*
+        * 创建订单
+        * 陈展 0409 10：54 重构了代码 分拆成多个方法
+     */
     public Order createOrder(Integer userId, List<Integer> cartItemIds, Object shippingAddress, String paymentMethod) {
-        // 添加用户权限验证
-        List<CartItem> cartItems = cartItemIds.stream()
-                .map(id -> cartRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("购物车项不存在: " + id)))
-                .filter(item -> item.getUserId().equals(userId)) // 新增权限验证
-                .collect(Collectors.toList());
+        // 1. 批量获取并验证数据
+        List<CartItem> validCartItems = getAndValidateCartItems(userId, cartItemIds);
+        Map<Integer, Product> productMap = getProductMap(validCartItems);
+        // 2. 处理库存并计算总金额
+        BigDecimal totalAmount = processStockAndCalculateTotal(validCartItems, productMap);
 
-        // 计算总金额并检查库存
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        // 3. 创建订单并保存关联
+        Order order = createOrderEntity(userId, paymentMethod, totalAmount);
+        saveCartOrderRelations(validCartItems, order);
+
+        return order;
+    }
+
+    /**
+     * 获取并验证购物车项 (合并数据查询和权限验证)
+     */
+    private List<CartItem> getAndValidateCartItems(Integer userId, List<Integer> cartItemIds) {
+        // 批量查询购物车项并过滤所属用户
+        List<CartItem> cartItems = cartItemRepository.findAllByCartItemIdIn(cartItemIds);
+        for (Integer cartItemId : cartItemIds) {
+            log.info("输入的cartItemId: {}", cartItemId);
+        }
         for (CartItem cartItem : cartItems) {
-            Product product = productRepository.findById(cartItem.getProductId())
-                    .orElseThrow(() -> new RuntimeException("商品未找到: " + cartItem.getProductId()));
-
-            // 检查库存
-            Stockpile stockpile = productService.getStock(cartItem.getProductId());
-            if (stockpile == null) {
-                throw new RuntimeException("商品库存未找到: " + product.getTitle());
-            }
-            if (stockpile.getAmount() < cartItem.getQuantity())
-            {
-                throw new RuntimeException("商品库存不足: " + product.getTitle());
-            }
-
-            // 计算价格
-            BigDecimal itemPrice = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            totalAmount = totalAmount.add(itemPrice);
+            log.info("找到的cartItemId: {} ProductId: {}", cartItem.getCartItemId(),cartItem.getProductId());
         }
 
-        // 创建订单
-        Order order = new Order();
-        order.setUserId(userId);
-        order.setTotalAmount(totalAmount);
-        order.setPaymentMethod(paymentMethod);
-        order.setStatus("PENDING"); // 待支付状态
+        return cartItems;
+    }
 
-        // 创建订单后保存关联关系
-        Order savedOrder = orderRepository.save(order);
+    /**
+     * 处理库存并计算总金额 (合并库存操作和金额计算)
+     */
 
-        // 保存购物车-订单关联
+    private BigDecimal processStockAndCalculateTotal(List<CartItem> cartItems, Map<Integer, Product> productMap) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (CartItem cartItem : cartItems) {
+            Product product = productMap.get(cartItem.getProductId());
+            Integer productId = cartItem.getProductId();
+
+            // 获取或创建该商品的锁
+            ReentrantLock lock = productLocks.computeIfAbsent(productId, k -> new ReentrantLock());
+
+            try {
+                lock.lock();
+
+                Stockpile stockpile = productService.getStock(productId);
+
+                if (stockpile.getAmount() < cartItem.getQuantity()) {
+                    throw new RuntimeException("商品库存不足: " + product.getTitle());
+                }
+
+                stockpile.setAmount(stockpile.getAmount() - cartItem.getQuantity());
+                stockpile.setLockedAmount(stockpile.getLockedAmount() + cartItem.getQuantity());
+
+                stockpileService.updateStockpile(stockpile);
+            } finally {
+                lock.unlock();
+            }
+
+            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            log.info("当前商品: {} 数量: {} 单价: {} 总金额: {}",
+                    product.getTitle(), cartItem.getQuantity(), product.getPrice(), total);
+        }
+
+        return total;
+    }
+    /**
+     * 获取商品映射表 (合并商品查询和存在性验证)
+     */
+    private Map<Integer, Product> getProductMap(List<CartItem> cartItems) {
+        Set<Integer> productIds = cartItems.stream()
+                .map(CartItem::getProductId)
+                .collect(Collectors.toSet());
+
+        Map<Integer, Product> productMap = new HashMap<>();
+        List<Product> products = productRepository.findAllById(productIds);
+
+        // 遍历产品列表，将每个产品映射到其ID
+        for (Product product : products) {
+            productMap.put(product.getId(), product);
+        }
+
+        // 验证所有商品存在
         cartItems.forEach(cartItem -> {
-            CartOrderRelation relation = new CartOrderRelation();
-            relation.setCartItemId(cartItem.getCartItemId());
-            relation.setOrderId(savedOrder.getOrderId());
-            cartOrderRelationRepository.save(relation);
+            if (!productMap.containsKey(cartItem.getProductId())) {
+                throw new RuntimeException("商品不存在: " + cartItem.getProductId());
+            }
         });
 
-        return savedOrder;
+        return productMap;
+    }
+
+    /**
+     * 创建订单实体 (封装订单创建逻辑)
+     */
+    private Order createOrderEntity(Integer userId, String paymentMethod, BigDecimal totalAmount) {
+        Order order = new Order();
+        order.setUserId(userId);
+        //为了满足67在创建订单时需要返回用户名的需求 0409 19:54
+        String username = accountRepository.findByUserId(userId).getUsername();
+        order.setUsername(username);
+
+        order.setTotalAmount(totalAmount);
+        order.setPaymentMethod(paymentMethod);
+        order.setStatus("PENDING");
+        order.setLockExpireTime(new Timestamp(System.currentTimeMillis() + 30 * 60 * 1000));
+        log.info("创建订单: 用户ID {}, 支付方式 {}, 总金额 {}", userId, paymentMethod, totalAmount);
+        return orderRepository.save(order);
+    }
+
+    /**
+     * 保存购物车-订单关联 (批量操作优化)
+     * 使用静态工厂方式创建 CartOrderRelation 实例
+     */
+    private void saveCartOrderRelations(List<CartItem> cartItems, Order order) {
+        List<CartOrderRelation> relations = new ArrayList<>(cartItems.size());
+
+        for (CartItem cartItem : cartItems) {
+            relations.add(CartOrderRelation.of(cartItem.getCartItemId(), order.getOrderId()));
+        }
+
+        cartOrderRelationRepository.saveAll(relations);
     }
 
     @Override
     public Order getOrderById(Integer orderId) {
         return orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("订单未找到"));
+    }
+
+    @Override
+    public Order getOrderByTradeNo(String tradeNo) {
+        return orderRepository.findByTradeNo(tradeNo)
                 .orElseThrow(() -> new RuntimeException("订单未找到"));
     }
 
@@ -124,79 +228,98 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.save(order);
     }
 
-    @Override
-    public Map<String, Object> generatePayment(Integer orderId) throws Exception {
-        Order order = getOrderById(orderId);
 
-        AlipayClient alipayClient = new DefaultAlipayClient(
-                GATEWAY_URL,
-                aliPayConfig.getAppId(),
-                aliPayConfig.getAppPrivateKey(),
-                FORMAT,
-                CHARSET,
-                aliPayConfig.getAlipayPublicKey(),
-                SIGN_TYPE);
 
-        AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
-        request.setNotifyUrl(aliPayConfig.getNotifyUrl());
-        request.setBizContent("{\"out_trade_no\":\"" + order.getOrderId() + "\","
-                + "\"total_amount\":\"" + order.getTotalAmount() + "\","
-                + "\"subject\":\"Tomato Mall Order #" + order.getOrderId() + "\","
-                + "\"product_code\":\"FAST_INSTANT_TRADE_PAY\"}");
-
-        String form = "";
-        try {
-            form = alipayClient.pageExecute(request).getBody();
-        } catch (AlipayApiException e) {
-            throw new RuntimeException("生成支付表单失败", e);
-        }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("paymentForm", form);
-        result.put("orderId", order.getOrderId());
-        result.put("totalAmount", order.getTotalAmount());
-        result.put("paymentMethod", order.getPaymentMethod());
-
-        return result;
-
-    }
-
+    // 支付回调处理
     @Override
     @Transactional
-    public boolean processPaymentCallback(Map<String, String> params) throws Exception {
-        // 验证支付签名
-        boolean signVerified = Factory.Payment.Common().verifyNotify(params);
+    public boolean processPaymentCallback(Map<String, String> params) {
+        // 参数解析
+        String orderId = params.get("out_trade_no");
+        String alipayTradeNo = params.get("trade_no");
+        BigDecimal actualAmount = new BigDecimal(params.get("total_amount"));
 
-        if (signVerified && "TRADE_SUCCESS".equals(params.get("trade_status"))) {
-            String outTradeNo = params.get("out_trade_no");
-            String tradeNo = params.get("trade_no");
-            String gmtPayment = params.get("gmt_payment");
+        // 获取订单
+        Order order = getOrderById(Integer.parseInt(orderId));
 
-            // 更新订单状态
-            Order order = getOrderById(Integer.valueOf(outTradeNo));
-            order.setStatus("SUCCESS"); // 成功状态
-            order.setTradeNo(tradeNo);
-            order.setPaymentTime(Timestamp.valueOf(gmtPayment.replace("T", " ").substring(0, 19)));
-            orderRepository.save(order);
+        // 1. 金额校验
+        if (order.getTotalAmount().compareTo(actualAmount) != 0) {
+            log.warn("订单金额不一致，订单ID：{} 系统金额：{} 实际金额：{}",
+                    orderId, order.getTotalAmount(), actualAmount);
+            throw new RuntimeException("支付金额校验失败");
+        }
 
-            // 获取订单关联的购物车项
-            List<CartOrderRelation> relations = cartOrderRelationRepository.findByOrderId(order.getOrderId());
-            List<Integer> cartItemIds = relations.stream()
-                    .map(CartOrderRelation::getCartItemId)
-                    .collect(Collectors.toList());
-            List<CartItem> cartItems = cartRepository.findAllByCartItemIdIn(cartItemIds);
-            for (CartItem cartItem : cartItems) {
-                Stockpile stockpile = productService.getStock(cartItem.getProductId());
-                if (stockpile.getAmount() < cartItem.getQuantity()) {
-                    throw new RuntimeException("库存不足，回滚交易");
-                }
-                productService.updateStock(cartItem.getProductId(),
-                        stockpile.getAmount() - cartItem.getQuantity());
-            }
-            cartRepository.deleteAll(cartItems);
+        // 2. 状态检查（二次幂等校验）
+        if ("SUCCESS".equals(order.getStatus())) {
+            log.info("订单已处理，直接返回成功，订单ID：{}", orderId);
             return true;
         }
 
-        return false;
+        // 3. 库存处理
+        List<CartOrderRelation> relations = cartOrderRelationRepository.findByOrderId(order.getOrderId());
+        relations.forEach(relation -> {
+            CartItem cartItem = cartRepository.findById(relation.getCartItemId())
+                    .orElseThrow(() -> new RuntimeException("购物车项不存在"));
+
+            Stockpile stockpile = stockpileRepository.findByProductId(cartItem.getProductId()).get();
+            synchronized (stockpile) {
+                // 释放锁定库存（实际库存已在创建订单时扣减）
+                stockpile.setLockedAmount(stockpile.getLockedAmount() - cartItem.getQuantity());
+                stockpileRepository.save(stockpile);
+            }
+        });
+
+        // 4. 清理购物车数据
+        List<Integer> cartItemIds = relations.stream()
+                .map(CartOrderRelation::getCartItemId)
+                .collect(Collectors.toList());
+        cartRepository.deleteAllById(cartItemIds);
+        cartOrderRelationRepository.deleteAll(relations);
+
+        // 5. 更新订单状态
+        order.setStatus("SUCCESS");
+        order.setTradeNo(alipayTradeNo);
+        order.setPaymentTime(new Timestamp(System.currentTimeMillis()));
+        orderRepository.save(order);
+
+        return true;
+    }
+
+
+
+    @Transactional
+    @Override
+    public void handleExpiredOrder(Integer orderId) {
+        Order order = getOrderById(orderId);
+        if ("PENDING".equals(order.getStatus()) &&
+                order.getLockExpireTime().before(new Timestamp(System.currentTimeMillis()))) {
+
+            // 恢复库存
+            List<CartOrderRelation> relations = cartOrderRelationRepository.findByOrderId(orderId);
+            relations.forEach(relation -> {
+                CartItem cartItem = cartRepository.findById(relation.getCartItemId()).orElse(null);
+                if (cartItem != null) {
+                    Stockpile stockpile = productService.getStock(cartItem.getProductId());
+                    synchronized (this) {
+                        stockpile.setAmount(stockpile.getAmount() + cartItem.getQuantity());
+                        stockpile.setLockedAmount(stockpile.getLockedAmount() - cartItem.getQuantity());
+                        productService.updateStock(stockpile.getProductId(),stockpile.getAmount());
+                    }
+                }
+            });
+
+            // 更新订单状态
+            order.setStatus("TIMEOUT");
+            orderRepository.save(order);
+        }
+    }
+
+
+    @Override
+    public List<Order> findExpiredOrders() {
+        // 获取当前时间戳
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        // 查询状态为PENDING且锁定时间早于当前时间的订单
+        return orderRepository.findByStatusAndLockExpireTimeBefore("PENDING", now);
     }
 }
