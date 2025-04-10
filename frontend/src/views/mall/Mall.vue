@@ -6,6 +6,38 @@ import { Search, ShoppingCart } from '@element-plus/icons-vue'
 import { getProductList, searchProducts, Product } from '../../api/mall'
 import { addToCart } from '../../api/cart'
 
+
+// 广告数据
+const advertisements = ref([
+  {
+    id: 1,
+    title: '新书特惠',
+    description: '精选新书5折起',
+    image: 'https://picsum.photos/1200/300?random=1',
+    backgroundColor: '#FCE4EC',
+    textColor: '#880E4F',
+    link: '/promotions/new-books'
+  },
+  {
+    id: 2,
+    title: '编程书籍专区',
+    description: '领略代码的艺术',
+    image: 'https://picsum.photos/1200/300?random=2',
+    backgroundColor: '#E3F2FD',
+    textColor: '#0D47A1',
+    link: '/category/programming'
+  },
+  {
+    id: 3,
+    title: '会员专享折扣',
+    description: '注册即享会员价',
+    image: 'https://picsum.photos/1200/300?random=3',
+    backgroundColor: '#F1F8E9',
+    textColor: '#33691E',
+    link: '/membership'
+  }
+])
+
 const router = useRouter()
 const products = ref<Product[]>([])
 const loading = ref(false)
@@ -198,6 +230,8 @@ const getAuthor = (product: Product): string => {
 onMounted(() => {
   loadProducts()
 })
+
+
 </script>
 
 <template>
@@ -223,6 +257,34 @@ onMounted(() => {
           </template>
         </el-input>
       </div>
+    </div>
+
+    <!-- 广告轮播 -->
+    <div class="carousel-container">
+      <el-carousel :interval="5000" type="card" height="300px">
+        <el-carousel-item v-for="item in advertisements" :key="item.id">
+          <div 
+            class="carousel-content" 
+            :style="{ backgroundColor: item.backgroundColor }" 
+            @click="router.push(item.link)"
+          >
+            <div class="carousel-text" :style="{ color: item.textColor }">
+              <h2>{{ item.title }}</h2>
+              <p>{{ item.description }}</p>
+              <el-button type="primary" size="small" class="carousel-btn">
+                了解更多
+              </el-button>
+            </div>
+            <div class="carousel-image">
+              <img 
+                :src="item.image" 
+                :alt="item.title" 
+                @error="(e) => e.target.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
     </div>
     
     <main class="content-section">
@@ -334,7 +396,7 @@ onMounted(() => {
 
 .search-container {
   max-width: 600px;
-  margin: 0 auto;
+  margin: -1rem auto 0;
 }
 
 .search-input :deep(.el-input__wrapper) {
@@ -554,6 +616,50 @@ onMounted(() => {
   color: white;
 }
 
+/* 轮播广告样式 */
+.carousel-container {
+  max-width: 1200px;
+  margin: -20px auto 30px;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+.carousel-content {
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.carousel-text {
+  flex: 1;
+  padding: 30px 35px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.carousel-text h2 {
+  font-size: 28px;
+  margin: 0 0 15px;
+  font-weight: 600;
+}
+
+.carousel-text p {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+
+.carousel-btn {
+  align-self: flex-start;
+  font-size: 16px;
+  padding: 8px 20px;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .hero-title {
@@ -575,6 +681,23 @@ onMounted(() => {
   
   .product-image {
     height: 180px;
+  }
+
+  .carousel-container {
+    padding: 0 1rem;
+    margin-top: -30px;
+  }
+  
+  .carousel-text h2 {
+    font-size: 22px;
+  }
+  
+  .carousel-text p {
+    font-size: 16px;
+  }
+  
+  .carousel-image {
+    display: none;
   }
 }
 </style>
