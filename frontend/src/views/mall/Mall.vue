@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, ShoppingCart } from '@element-plus/icons-vue'
-import { getProductList, searchProducts, Product } from '../../api/mall'
+import { getProductList, searchProducts, Product, updateProduct, deleteProduct } from '../../api/mall'
 import { addToCart } from '../../api/cart'
 
 const router = useRouter()
@@ -12,6 +12,10 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const activeCategory = ref('全部')
 const sortOption = ref('default')
+
+// 管理员相关逻辑
+const isAdmin = computed(() => sessionStorage.getItem('role') === 'admin')
+const adminMode = ref(false)
 
 // 分类映射 - 从规格中提取分类信息
 const extractCategories = (products: Product[]): string[] => {
@@ -193,6 +197,71 @@ const getAuthor = (product: Product): string => {
   const authorSpec = product.specifications?.find(spec => spec.item === '作者')
   return authorSpec ? authorSpec.value : '未知作者'
 }
+// 处理管理员模式变更
+const handleAdminModeChange = (value) => {
+  adminMode.value = value
+  if (value) {
+    ElMessage.success('已启用管理员编辑模式')
+  } else {
+    ElMessage.info('已退出管理员编辑模式')
+  }
+}
+
+// 删除商品
+const handleDeleteProduct = async (productId) => {
+  if (!isAdmin.value || !adminMode.value) return
+  
+  try {
+    await ElMessageBox.confirm('确定要删除该商品吗？删除后不可恢复', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    const res = await deleteProduct(productId)
+    if (res.data.code == 200) {
+      ElMessage.success('商品删除成功')
+      // 重新加载商品列表
+      loadProducts()
+    } else {
+      ElMessage.error(res.data.msg || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除商品出错:', error)
+      ElMessage.error('操作失败，请重试')
+    }
+  }
+}
+
+// 显示编辑表单
+const showEditForm = ref(false)
+const currentEditProduct = ref<Product | null>(null)
+
+const handleEditProduct = (product) => {
+  currentEditProduct.value = JSON.parse(JSON.stringify(product)) // 深拷贝防止直接修改
+  showEditForm.value = true
+}
+
+// 保存商品修改
+const saveProductChanges = async () => {
+  if (!currentEditProduct.value) return
+  
+  try {
+    const res = await updateProduct(currentEditProduct.value)
+    if (res.data.code == 200) {
+      ElMessage.success('商品信息更新成功')
+      showEditForm.value = false
+      // 重新加载商品列表
+      loadProducts()
+    } else {
+      ElMessage.error(res.data.msg || '更新失败')
+    }
+  } catch (error) {
+    console.error('更新商品出错:', error)
+    ElMessage.error('操作失败，请重试')
+  }
+}
 
 // 页面加载时获取商品列表
 onMounted(() => {
@@ -201,7 +270,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mall-container">
+  <div class="mall-container" :class="{ 'admin-mode': adminMode }">
     <!-- 顶部区域 -->
     <div class="hero-section">
       <h1 class="hero-title">番茄读书商城</h1>
@@ -223,6 +292,16 @@ onMounted(() => {
           </template>
         </el-input>
       </div>
+    </div>
+    
+    <!-- 管理员模式切换 -->
+    <div v-if="isAdmin" class="admin-mode-toggle">
+      <el-switch
+        v-model="adminMode"
+        active-text="管理员编辑模式"
+        inactive-text="普通浏览模式"
+        @change="handleAdminModeChange"
+      />
     </div>
     
     <main class="content-section">
@@ -268,6 +347,26 @@ onMounted(() => {
               暂无库存
             </div>
             
+            <!-- 管理员模式下显示的按钮 -->
+            <div v-if="isAdmin && adminMode" class="admin-actions">
+              <el-button 
+                type="primary" 
+                size="small" 
+                @click.stop="handleEditProduct(product)"
+                icon="Edit"
+              >
+                修改
+              </el-button>
+              <el-button 
+                type="danger" 
+                size="small" 
+                @click.stop="handleDeleteProduct(product.id)"
+                icon="Delete"
+              >
+                删除
+              </el-button>
+            </div>
+            
             <div class="product-image">
               <img 
                 :src="product.cover" 
@@ -306,8 +405,42 @@ onMounted(() => {
     <footer class="mall-footer">
       <p>© 2025 番茄读书商城 - 南京大学软件工程与计算2</p>
     </footer>
+
+    <!-- 编辑商品的对话框 -->
+    <el-dialog
+      v-model="showEditForm"
+      title="编辑商品信息"
+      width="50%"
+      :before-close="() => showEditForm = false"
+    >
+      <el-form v-if="currentEditProduct" label-width="100px" :model="currentEditProduct">
+        <el-form-item label="商品名称">
+          <el-input v-model="currentEditProduct.title"></el-input>
+        </el-form-item>
+        <el-form-item label="商品价格">
+          <el-input-number v-model="currentEditProduct.price" :precision="2" :step="0.1" :min="0"></el-input-number>
+        </el-form-item>
+        <el-form-item label="商品图片">
+          <el-input v-model="currentEditProduct.cover" placeholder="图片URL"></el-input>
+        </el-form-item>
+        <el-form-item label="商品描述">
+          <el-input v-model="currentEditProduct.description" type="textarea" rows="3"></el-input>
+        </el-form-item>
+        <el-form-item label="详细内容">
+          <el-input v-model="currentEditProduct.detail" type="textarea" rows="5"></el-input>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showEditForm = false">取消</el-button>
+          <el-button type="primary" @click="saveProductChanges">保存修改</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
+
 <style scoped>
 .mall-container {
   min-height: 100vh;
@@ -339,6 +472,16 @@ onMounted(() => {
 
 .search-input :deep(.el-input__wrapper) {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-mode-toggle {
+  margin: 15px auto;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  max-width: 1200px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .content-section {
@@ -455,6 +598,15 @@ onMounted(() => {
   transform: translateY(0);
 }
 
+.admin-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
 .cart-btn {
   background-color: #e74c3c;
   border-color: #e74c3c;
@@ -554,6 +706,16 @@ onMounted(() => {
   color: white;
 }
 
+/* 管理员模式样式 */
+.admin-mode .product-card {
+  border: 1px dashed #e74c3c;
+}
+
+.admin-mode .product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .hero-title {
@@ -575,6 +737,17 @@ onMounted(() => {
   
   .product-image {
     height: 180px;
+  }
+  
+  .admin-actions {
+    flex-direction: column;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .admin-actions .el-button {
+    padding: 4px 8px;
+    font-size: 12px;
   }
 }
 </style>
