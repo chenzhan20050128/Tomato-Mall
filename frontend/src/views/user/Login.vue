@@ -51,7 +51,7 @@ const handleLogin = async () => {
     username: username.value,
     password: password.value
   }).then(res => {
-    if (res.data.code === '200') {
+    if (res.data.code == 200) {
       // 保存用户信息和token
       sessionStorage.setItem('token', res.data.data) // 后端返回的是直接的token字符串
       sessionStorage.setItem('username', username.value) // 保存用户名
