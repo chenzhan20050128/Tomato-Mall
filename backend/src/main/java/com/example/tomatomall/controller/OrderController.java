@@ -9,6 +9,7 @@ import com.example.tomatomall.service.OrderService;
 import com.example.tomatomall.vo.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,9 @@ public class OrderController {
 
     @Resource
     AliPayConfig aliPayConfig;
+
+    @Value("${alipay.returnUrl}")
+    private String alipayReturnUrl;
 
     private static final String GATEWAY_URL ="https://openapi-sandbox.dl.alipaydev.com/gateway.do";
     private static final String FORMAT ="JSON";
@@ -59,7 +63,8 @@ public class OrderController {
 
         AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
         request.setNotifyUrl(aliPayConfig.getNotifyUrl());
-        request.setReturnUrl("http://baidu.com");//前端返回地址
+        log.info("支付宝支付回调地址: {}", aliPayConfig.getNotifyUrl());
+        request.setReturnUrl(alipayReturnUrl);//前端返回地址
 
         JSONObject bizContent = new JSONObject();
         bizContent.put("out_trade_no", order.getOrderId());  // 我们自己生成的订单编号
@@ -82,40 +87,64 @@ public class OrderController {
 
     @PostMapping("/notify")
     public void payNotify(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        log.info("支付宝支付回调开始");
+
         Map<String, String> params = new HashMap<>();
         request.getParameterMap().forEach((k, v) -> params.put(k, v[0]));
+        log.info("接收到回调参数: {}", params);
 
         try {
             // 1. 签名验证
+            log.info("开始进行签名验证");
             boolean verifyResult = Factory.Payment.Common().verifyNotify(params);
+            log.info("签名验证结果: {}", verifyResult);
+
             if (!verifyResult) {
+                log.info("签名验证失败，返回fail");
                 response.getWriter().print("fail");
                 return;
             }
 
             // 2. 状态校验
-            if (!"TRADE_SUCCESS".equals(params.get("trade_status")) && !"TRADE_FINISHED".equals(params.get("trade_status"))) {
+            String tradeStatus = params.get("trade_status");
+            log.info("交易状态: {}", tradeStatus);
+
+            if (!"TRADE_SUCCESS".equals(tradeStatus) && !"TRADE_FINISHED".equals(tradeStatus)) {
+                log.info("交易状态不是成功或完成状态，直接返回success");
                 response.getWriter().print("success");
                 return;
             }
 
             // 3. 业务处理
             String orderId = params.get("out_trade_no");
+            log.info("获取到订单ID: {}", orderId);
+
             Order order = orderService.getOrderById(Integer.parseInt(orderId));
+            log.info("查询到订单信息: {}", order);
 
             // 幂等性检查（防止重复处理）
+            log.info("开始幂等性检查，当前订单状态: {}", order.getStatus());
             if ("SUCCESS".equals(order.getStatus())) {
+                log.info("订单已处理过，直接返回success");
                 response.getWriter().print("success");
                 return;
             }
 
             // 4. 处理支付结果
+            log.info("开始处理支付结果");
             boolean success = orderService.processPaymentCallback(params);
-            response.getWriter().print(success ? "success" : "fail");
+            log.info("支付结果处理完成，处理结果: {}", success);
+
+            String responseText = success ? "success" : "fail";
+            log.info("返回结果: {}", responseText);
+            response.getWriter().print(responseText);
         } catch (Exception e) {
+            log.error("支付回调处理异常: {}", e.getMessage(), e);
             response.setStatus(500);
             response.getWriter().print("fail");
             log.error("支付回调处理失败", e);
+        } finally {
+            log.info("支付宝支付回调处理结束");
         }
     }
 
