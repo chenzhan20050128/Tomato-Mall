@@ -9,18 +9,23 @@ import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.easysdk.factory.Factory;
 import com.example.tomatomall.config.AliPayConfig;
 import com.example.tomatomall.dao.*;
+import com.example.tomatomall.dto.PaymentNotifyDTO;
 import com.example.tomatomall.po.*;
 import com.example.tomatomall.service.OrderService;
 import com.example.tomatomall.service.ProductService;
 import com.example.tomatomall.service.StockpileService;
 import com.example.tomatomall.vo.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
+import com.example.tomatomall.config.RabbitMQConfig;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -67,6 +72,9 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private CartItemRepository cartItemRepository;
 
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
     private final ConcurrentHashMap<Integer, ReentrantLock> productLocks = new ConcurrentHashMap<>();
 
     //使用可重入锁 added by cz on 4.9 at 19:47
@@ -80,16 +88,41 @@ public class OrderServiceImpl implements OrderService {
     public Order createOrder(Integer userId, List<Integer> cartItemIds, Object shippingAddress, String paymentMethod) {
         // 1. 批量获取并验证数据
         List<CartItem> validCartItems = getAndValidateCartItems(userId, cartItemIds);
+
         Map<Integer, Product> productMap = getProductMap(validCartItems);
+
         // 2. 处理库存并计算总金额
         BigDecimal totalAmount = processStockAndCalculateTotal(validCartItems, productMap);
 
         // 3. 创建订单并保存关联
         Order order = createOrderEntity(userId, paymentMethod, totalAmount);
         saveCartOrderRelations(validCartItems, order);
-
+        sendDelayOrderMessage(order);
         return order;
     }
+
+    // 在OrderServiceImpl中修改sendDelayOrderMessage方法
+    private void sendDelayOrderMessage(Order order) {
+        MessageProperties props = new MessageProperties();
+        props.setContentType("application/json");  // 显式设置内容类型
+        props.setDelay(7200 * 1000);               // 使用标准延时设置
+
+        Message message = rabbitTemplate.getMessageConverter().toMessage(
+                new HashMap<String, Object>() {{
+                    put("orderId", order.getOrderId());
+                    put("createTime", order.getCreateTime().getTime());
+                    put("expireDuration", 7200);
+                }},
+                props
+        );
+
+        rabbitTemplate.send(
+                "order.delay.exchange",
+                "order.delay",
+                message
+        );
+    }
+
 
     /**
      * 获取并验证购物车项 (合并数据查询和权限验证)
@@ -234,11 +267,11 @@ public class OrderServiceImpl implements OrderService {
     // 支付回调处理
     @Override
     @Transactional
-    public boolean processPaymentCallback(Map<String, String> params) {
+    public boolean processPaymentCallback(PaymentNotifyDTO paymentNotifyDTO) throws Exception {
         // 参数解析
-        String orderId = params.get("out_trade_no");
-        String alipayTradeNo = params.get("trade_no");
-        BigDecimal actualAmount = new BigDecimal(params.get("total_amount"));
+        String orderId = paymentNotifyDTO.getOutTradeNo();
+        String alipayTradeNo = paymentNotifyDTO.getTradeNo();
+        BigDecimal actualAmount = paymentNotifyDTO.getTotalAmount();
 
         // 获取订单
         Order order = getOrderById(Integer.parseInt(orderId));
@@ -269,20 +302,20 @@ public class OrderServiceImpl implements OrderService {
                 stockpileRepository.save(stockpile);
             }
         });
-
+        log.info("已经释放锁定库存，订单ID：{}", orderId);
         // 4. 清理购物车数据
         List<Integer> cartItemIds = relations.stream()
                 .map(CartOrderRelation::getCartItemId)
                 .collect(Collectors.toList());
         cartRepository.deleteAllById(cartItemIds);
         cartOrderRelationRepository.deleteAll(relations);
-
+        log.info("已经清理购物车数据，订单ID：{}", orderId);
         // 5. 更新订单状态
         order.setStatus("SUCCESS");
         order.setTradeNo(alipayTradeNo);
         order.setPaymentTime(new Timestamp(System.currentTimeMillis()));
         orderRepository.save(order);
-
+        log.info("订单状态更新成功，订单ID：{} orderStatus：{} tradeNo: {} PaymentTime", orderId,"SUCCESS",order.getTradeNo(), order.getPaymentTime());
         return true;
     }
 
@@ -313,6 +346,7 @@ public class OrderServiceImpl implements OrderService {
             order.setStatus("TIMEOUT");
             orderRepository.save(order);
         }
+
     }
 
 
@@ -323,4 +357,7 @@ public class OrderServiceImpl implements OrderService {
         // 查询状态为PENDING且锁定时间早于当前时间的订单
         return orderRepository.findByStatusAndLockExpireTimeBefore("PENDING", now);
     }
+
+
+
 }

@@ -77,6 +77,17 @@
         <artifactId>alipay-sdk-java</artifactId>
         <version>4.34.0.ALL</version>
         </dependency>
+
+        <!-- RabbitMQ 依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.rabbitmq</groupId>
+            <artifactId>amqp-client</artifactId>
+            <version>5.16.0</version> <!-- 升级到最新稳定版 -->
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

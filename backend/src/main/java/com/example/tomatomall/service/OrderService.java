@@ -1,5 +1,6 @@
 package com.example.tomatomall.service;
 
+import com.example.tomatomall.dto.PaymentNotifyDTO;
 import com.example.tomatomall.po.Order;
 import com.example.tomatomall.vo.Response;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,11 +17,12 @@ public interface OrderService {
     List<Order> getOrdersByUserId(Integer userId); // 根据用户ID获取订单列表
     Order updateOrderStatus(Integer orderId, String status); // 更新订单状态
     // 生成支付信息
-    boolean processPaymentCallback(Map<String, String> params) throws Exception;
+    boolean processPaymentCallback(PaymentNotifyDTO paymentNotifyDTO) throws Exception;
 
     @Transactional
     void handleExpiredOrder(Integer orderId);
     // 处理支付回调
 
     List<Order> findExpiredOrders();
+
 }
