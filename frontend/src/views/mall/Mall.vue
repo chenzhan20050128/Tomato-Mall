@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { Search, ShoppingCart } from '@element-plus/icons-vue'
 import { getProductList, searchProducts, Product } from '../../api/mall'
 import { addToCart } from '../../api/cart'
-
+import { navigateWithTransition } from '../../utils/transition'
 
 // 广告数据
 const advertisements = ref([
@@ -44,6 +44,15 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const activeCategory = ref('全部')
 const sortOption = ref('default')
+
+// 带过渡效果的商品详情跳转
+const navigateToProduct = (product: Product, event: Event) => {
+  // 如果点击的是加入购物车按钮，不进行跳转
+  if ((event.target as HTMLElement).closest('.cart-btn')) {
+    return
+  }
+  navigateWithTransition(router, `/product/${product.id}`, 'product')
+}
 
 // 分类映射 - 从规格中提取分类信息
 const extractCategories = (products: Product[]): string[] => {
@@ -323,7 +332,7 @@ onMounted(() => {
             v-for="product in filteredProducts" 
             :key="product.id" 
             class="product-card" 
-            @click="router.push(`/product/${product.id}`)"
+            @click="(e) => navigateToProduct(product, e)"
           >
             <!-- 商品可用状态标签 -->
             <div v-if="!product.isAvailable" class="product-status-tag unavailable">
@@ -335,6 +344,7 @@ onMounted(() => {
                 :src="product.cover" 
                 :alt="product.title"
                 @error="handleImageError"
+                :style="{ viewTransitionName: `product-image-${product.id}` }"
               >
               <div class="product-overlay" v-if="product.isAvailable">
                 <el-button 
@@ -658,6 +668,49 @@ onMounted(() => {
   align-self: flex-start;
   font-size: 16px;
   padding: 8px 20px;
+}
+
+/* 添加 View Transition 相关样式 */
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes slide-from-right {
+  from { transform: translateX(30px); }
+}
+
+@keyframes slide-to-left {
+  to { transform: translateX(-30px); }
+}
+
+::view-transition-old(root) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+
+::view-transition-new(root) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+}
+
+/* 禁用图片的特定过渡，让其单独控制 */
+::view-transition-group(product-image) {
+  animation-duration: 0s;
+}
+
+::view-transition-image-pair(product-image) {
+  isolation: auto;
+}
+
+::view-transition-old(product-image),
+::view-transition-new(product-image) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
 }
 
 /* 响应式调整 */
