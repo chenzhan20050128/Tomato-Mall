@@ -3,8 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ShoppingCart, Star, StarFilled } from '@element-plus/icons-vue'
-import { getProductDetail, getProductStock, Product } from '../../api/mall.ts' // 添加getProductStock导入
-import { addToCart } from '../../api/cart.ts'
+import { getProductDetail, Product } from '../../api/mall'
+import { addToCart } from '../../api/cart'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,7 +21,7 @@ const product = ref<Product>({
   cover: '',
   detail: '',
   specifications: [],
-  stock: 1000,  // 默认库存
+  stock: 100,  // 默认库存
   isAvailable: true
 })
 
@@ -173,9 +173,9 @@ const averageRating = computed(() => {
 })
 
 // 库存检查计算属性
-const productStock = computed(() => Math.max(product.value.stock || 0, 1))
-const hasStock = computed(() => (product.value.stock || 0) > 0)
-const hasHighStock = computed(() => (product.value.stock || 0) > 10)
+const productStock = computed(() => product.value.stock || 0)
+const hasStock = computed(() => productStock.value > 0)
+const hasHighStock = computed(() => productStock.value > 10)
 
 // 切换图片
 const changeImage = (index: number) => {
@@ -198,31 +198,12 @@ const loadProductDetail = async () => {
     if (res.data.code == 200 && res.data.data) {
       product.value = res.data.data
       
-      // 设置默认可用状态
+      // 设置默认库存和可用状态
+      if (product.value.stock === undefined) {
+        product.value.stock = 100
+      }
       if (product.value.isAvailable === undefined) {
         product.value.isAvailable = true
-      }
-      
-      // 获取真实库存信息
-      try {
-        const stockRes = await getProductStock(product.value.id)
-        if (stockRes.data.code == 200 && stockRes.data.data) {
-          // 使用API返回的实际库存
-          product.value.stock = stockRes.data.data.amount
-          
-          // 如果库存为0，设置商品不可用
-          if (stockRes.data.data.amount <= 0) {
-            product.value.isAvailable = false
-          }
-          
-          console.log(`成功获取商品 ${product.value.id} 的库存: ${product.value.stock}`)
-        } else {
-          console.warn('获取库存返回异常:', stockRes.data.msg)
-          product.value.stock = 100 // 默认值
-        }
-      } catch (stockError) {
-        console.error('获取库存信息出错:', stockError)
-        product.value.stock = 100 // 默认值
       }
       
       // 重置数量选择器
@@ -326,10 +307,13 @@ onMounted(() => {
           </div>
           
           <div class="product-stock">
-  <span :class="['stock-status', hasStock ? 'in-stock' : 'low-stock']">
-    {{ hasStock ? `库存${productStock}件` : '库存不足' }}
-  </span>
-</div>
+            <span :class="['stock-status', hasHighStock ? 'in-stock' : 'low-stock']">
+              {{ hasStock ? '有货' : '缺货' }}
+            </span>
+            <span class="stock-count" v-if="hasStock">
+              {{ hasHighStock ? '库存充足' : `仅剩${productStock}件` }}
+            </span>
+          </div>
           
           <div class="product-actions">
             <div class="quantity-control">

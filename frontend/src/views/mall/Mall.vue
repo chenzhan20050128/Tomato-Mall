@@ -1,10 +1,42 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Search, ShoppingCart } from '@element-plus/icons-vue'
-import { getProductList, searchProducts, Product, updateProduct, deleteProduct } from '../../api/mall'
+import { getProductList, searchProducts, Product } from '../../api/mall'
 import { addToCart } from '../../api/cart'
+import { navigateWithTransition } from '../../utils/transition'
+
+// 广告数据
+const advertisements = ref([
+  {
+    id: 1,
+    title: '新书特惠',
+    description: '精选新书5折起',
+    image: 'https://picsum.photos/1200/300?random=1',
+    backgroundColor: '#FCE4EC',
+    textColor: '#880E4F',
+    link: '/promotions/new-books'
+  },
+  {
+    id: 2,
+    title: '编程书籍专区',
+    description: '领略代码的艺术',
+    image: 'https://picsum.photos/1200/300?random=2',
+    backgroundColor: '#E3F2FD',
+    textColor: '#0D47A1',
+    link: '/category/programming'
+  },
+  {
+    id: 3,
+    title: '会员专享折扣',
+    description: '注册即享会员价',
+    image: 'https://picsum.photos/1200/300?random=3',
+    backgroundColor: '#F1F8E9',
+    textColor: '#33691E',
+    link: '/membership'
+  }
+])
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -13,9 +45,14 @@ const searchKeyword = ref('')
 const activeCategory = ref('全部')
 const sortOption = ref('default')
 
-// 管理员相关逻辑
-const isAdmin = computed(() => sessionStorage.getItem('role') === 'admin')
-const adminMode = ref(false)
+// 带过渡效果的商品详情跳转
+const navigateToProduct = (product: Product, event: Event) => {
+  // 如果点击的是加入购物车按钮，不进行跳转
+  if ((event.target as HTMLElement).closest('.cart-btn')) {
+    return
+  }
+  navigateWithTransition(router, `/product/${product.id}`, 'product')
+}
 
 // 分类映射 - 从规格中提取分类信息
 const extractCategories = (products: Product[]): string[] => {
@@ -197,80 +234,17 @@ const getAuthor = (product: Product): string => {
   const authorSpec = product.specifications?.find(spec => spec.item === '作者')
   return authorSpec ? authorSpec.value : '未知作者'
 }
-// 处理管理员模式变更
-const handleAdminModeChange = (value) => {
-  adminMode.value = value
-  if (value) {
-    ElMessage.success('已启用管理员编辑模式')
-  } else {
-    ElMessage.info('已退出管理员编辑模式')
-  }
-}
-
-// 删除商品
-const handleDeleteProduct = async (productId) => {
-  if (!isAdmin.value || !adminMode.value) return
-  
-  try {
-    await ElMessageBox.confirm('确定要删除该商品吗？删除后不可恢复', '警告', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    const res = await deleteProduct(productId)
-    if (res.data.code == 200) {
-      ElMessage.success('商品删除成功')
-      // 重新加载商品列表
-      loadProducts()
-    } else {
-      ElMessage.error(res.data.msg || '删除失败')
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除商品出错:', error)
-      ElMessage.error('操作失败，请重试')
-    }
-  }
-}
-
-// 显示编辑表单
-const showEditForm = ref(false)
-const currentEditProduct = ref<Product | null>(null)
-
-const handleEditProduct = (product) => {
-  currentEditProduct.value = JSON.parse(JSON.stringify(product)) // 深拷贝防止直接修改
-  showEditForm.value = true
-}
-
-// 保存商品修改
-const saveProductChanges = async () => {
-  if (!currentEditProduct.value) return
-  
-  try {
-    const res = await updateProduct(currentEditProduct.value)
-    if (res.data.code == 200) {
-      ElMessage.success('商品信息更新成功')
-      showEditForm.value = false
-      // 重新加载商品列表
-      loadProducts()
-    } else {
-      ElMessage.error(res.data.msg || '更新失败')
-    }
-  } catch (error) {
-    console.error('更新商品出错:', error)
-    ElMessage.error('操作失败，请重试')
-  }
-}
 
 // 页面加载时获取商品列表
 onMounted(() => {
   loadProducts()
 })
+
+
 </script>
 
 <template>
-  <div class="mall-container" :class="{ 'admin-mode': adminMode }">
+  <div class="mall-container">
     <!-- 顶部区域 -->
     <div class="hero-section">
       <h1 class="hero-title">番茄读书商城</h1>
@@ -293,15 +267,33 @@ onMounted(() => {
         </el-input>
       </div>
     </div>
-    
-    <!-- 管理员模式切换 -->
-    <div v-if="isAdmin" class="admin-mode-toggle">
-      <el-switch
-        v-model="adminMode"
-        active-text="管理员编辑模式"
-        inactive-text="普通浏览模式"
-        @change="handleAdminModeChange"
-      />
+
+    <!-- 广告轮播 -->
+    <div class="carousel-container">
+      <el-carousel :interval="5000" type="card" height="300px">
+        <el-carousel-item v-for="item in advertisements" :key="item.id">
+          <div 
+            class="carousel-content" 
+            :style="{ backgroundColor: item.backgroundColor }" 
+            @click="router.push(item.link)"
+          >
+            <div class="carousel-text" :style="{ color: item.textColor }">
+              <h2>{{ item.title }}</h2>
+              <p>{{ item.description }}</p>
+              <el-button type="primary" size="small" class="carousel-btn">
+                了解更多
+              </el-button>
+            </div>
+            <div class="carousel-image">
+              <img 
+                :src="item.image" 
+                :alt="item.title" 
+                @error="(e) => e.target.style.display = 'none'"
+              />
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
     </div>
     
     <main class="content-section">
@@ -340,31 +332,11 @@ onMounted(() => {
             v-for="product in filteredProducts" 
             :key="product.id" 
             class="product-card" 
-            @click="router.push(`/product/${product.id}`)"
+            @click="(e) => navigateToProduct(product, e)"
           >
             <!-- 商品可用状态标签 -->
             <div v-if="!product.isAvailable" class="product-status-tag unavailable">
               暂无库存
-            </div>
-            
-            <!-- 管理员模式下显示的按钮 -->
-            <div v-if="isAdmin && adminMode" class="admin-actions">
-              <el-button 
-                type="primary" 
-                size="small" 
-                @click.stop="handleEditProduct(product)"
-                icon="Edit"
-              >
-                修改
-              </el-button>
-              <el-button 
-                type="danger" 
-                size="small" 
-                @click.stop="handleDeleteProduct(product.id)"
-                icon="Delete"
-              >
-                删除
-              </el-button>
             </div>
             
             <div class="product-image">
@@ -372,6 +344,7 @@ onMounted(() => {
                 :src="product.cover" 
                 :alt="product.title"
                 @error="handleImageError"
+                :style="{ viewTransitionName: `product-image-${product.id}` }"
               >
               <div class="product-overlay" v-if="product.isAvailable">
                 <el-button 
@@ -405,42 +378,8 @@ onMounted(() => {
     <footer class="mall-footer">
       <p>© 2025 番茄读书商城 - 南京大学软件工程与计算2</p>
     </footer>
-
-    <!-- 编辑商品的对话框 -->
-    <el-dialog
-      v-model="showEditForm"
-      title="编辑商品信息"
-      width="50%"
-      :before-close="() => showEditForm = false"
-    >
-      <el-form v-if="currentEditProduct" label-width="100px" :model="currentEditProduct">
-        <el-form-item label="商品名称">
-          <el-input v-model="currentEditProduct.title"></el-input>
-        </el-form-item>
-        <el-form-item label="商品价格">
-          <el-input-number v-model="currentEditProduct.price" :precision="2" :step="0.1" :min="0"></el-input-number>
-        </el-form-item>
-        <el-form-item label="商品图片">
-          <el-input v-model="currentEditProduct.cover" placeholder="图片URL"></el-input>
-        </el-form-item>
-        <el-form-item label="商品描述">
-          <el-input v-model="currentEditProduct.description" type="textarea" rows="3"></el-input>
-        </el-form-item>
-        <el-form-item label="详细内容">
-          <el-input v-model="currentEditProduct.detail" type="textarea" rows="5"></el-input>
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showEditForm = false">取消</el-button>
-          <el-button type="primary" @click="saveProductChanges">保存修改</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
-
 <style scoped>
 .mall-container {
   min-height: 100vh;
@@ -467,21 +406,11 @@ onMounted(() => {
 
 .search-container {
   max-width: 600px;
-  margin: 0 auto;
+  margin: -1rem auto 0;
 }
 
 .search-input :deep(.el-input__wrapper) {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.admin-mode-toggle {
-  margin: 15px auto;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  max-width: 1200px;
-  display: flex;
-  justify-content: flex-end;
 }
 
 .content-section {
@@ -598,15 +527,6 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-.admin-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 5px;
-  z-index: 10;
-}
-
 .cart-btn {
   background-color: #e74c3c;
   border-color: #e74c3c;
@@ -706,14 +626,91 @@ onMounted(() => {
   color: white;
 }
 
-/* 管理员模式样式 */
-.admin-mode .product-card {
-  border: 1px dashed #e74c3c;
+/* 轮播广告样式 */
+.carousel-container {
+  max-width: 1200px;
+  margin: -20px auto 30px;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
 }
 
-.admin-mode .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+.carousel-content {
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.carousel-text {
+  flex: 1;
+  padding: 30px 35px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.carousel-text h2 {
+  font-size: 28px;
+  margin: 0 0 15px;
+  font-weight: 600;
+}
+
+.carousel-text p {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+
+.carousel-btn {
+  align-self: flex-start;
+  font-size: 16px;
+  padding: 8px 20px;
+}
+
+/* 添加 View Transition 相关样式 */
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes slide-from-right {
+  from { transform: translateX(30px); }
+}
+
+@keyframes slide-to-left {
+  to { transform: translateX(-30px); }
+}
+
+::view-transition-old(root) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+}
+
+::view-transition-new(root) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+}
+
+/* 禁用图片的特定过渡，让其单独控制 */
+::view-transition-group(product-image) {
+  animation-duration: 0s;
+}
+
+::view-transition-image-pair(product-image) {
+  isolation: auto;
+}
+
+::view-transition-old(product-image),
+::view-transition-new(product-image) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
 }
 
 /* 响应式调整 */
@@ -738,16 +735,22 @@ onMounted(() => {
   .product-image {
     height: 180px;
   }
-  
-  .admin-actions {
-    flex-direction: column;
-    top: 5px;
-    right: 5px;
+
+  .carousel-container {
+    padding: 0 1rem;
+    margin-top: -30px;
   }
   
-  .admin-actions .el-button {
-    padding: 4px 8px;
-    font-size: 12px;
+  .carousel-text h2 {
+    font-size: 22px;
+  }
+  
+  .carousel-text p {
+    font-size: 16px;
+  }
+  
+  .carousel-image {
+    display: none;
   }
 }
 </style>

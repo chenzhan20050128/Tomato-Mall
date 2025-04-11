@@ -28,19 +28,6 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-// 库存信息接口
-export interface Stockpile {
-  id: string;
-  productId: string;
-  amount: number;
-  frozen: number;
-}
-
-// 请求参数接口
-export interface AmountRequest {
-  amount: number;
-}
-
 // 获取商品列表
 export function getProductList() {
   return axios<ApiResponse<Product[]>>({
@@ -57,44 +44,9 @@ export function getProductDetail(id: string) {
   })
 }
 
-// 更新商品信息
-export function updateProduct(product: Product) {
-  return axios<ApiResponse<string>>({
-    url: '/api/products',
-    method: 'put',
-    data: product
-  })
-}
-
-// 创建商品
-export function createProduct(product: Omit<Product, 'id'>) {
-  return axios<ApiResponse<Product>>({
-    url: '/api/products',
-    method: 'post',
-    data: product
-  })
-}
-
-// 删除商品
-export function deleteProduct(id: string) {
-  return axios<ApiResponse<string>>({
-    url: `/api/products/${id}`,
-    method: 'delete'
-  })
-}
-
-// 调整商品库存
-export function updateStock(productId: string, amount: number) {
-  return axios<ApiResponse<string>>({
-    url: `/api/products/stockpile/${productId}`,
-    method: 'patch',
-    data: { amount }
-  })
-}
-
 // 获取商品库存
 export function getProductStock(productId: string) {
-  return axios<ApiResponse<Stockpile>>({
+  return axios<ApiResponse<{amount: number}>>({
     url: `/api/products/stockpile/${productId}`,
     method: 'get'
   })

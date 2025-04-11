@@ -8,5 +8,4 @@ import java.util.Optional;
 @Repository
 public interface StockpileRepository extends JpaRepository<Stockpile, Integer> {
     Optional<Stockpile> findByProductId(Integer productId);
-    void deleteByProductId(Integer productId);
 }

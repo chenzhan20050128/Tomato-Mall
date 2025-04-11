@@ -129,24 +129,18 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public String deleteProduct(Integer id) {
-        try {
-            // 1. 先检查商品是否存在
-            Product product = productRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("商品不存在"));
-
-            // 2. 清除规格关联
-            specificationRepository.deleteByProductId(id);
-
-            // 3. 删除库存记录
-            stockpileRepository.deleteByProductId(id);
-
-            // 4. 最后删除商品本身
-            productRepository.delete(product);
-
-            return "删除成功";
-        } catch (Exception e) {
-            throw new RuntimeException("删除商品失败: " + e.getMessage());
+        // 检查商品是否存在
+        Product product = productRepository.findByIdWithSpecifications(id);
+        if (product == null) {
+            throw new RuntimeException("商品不存在");
         }
+
+        // 清空规格关联
+        product.getSpecifications().clear();
+
+        // 删除商品（由于配置了 cascade = CascadeType.ALL，规格会自动删除）
+        productRepository.delete(product);
+        return "删除成功";
     }
 
     @Override
