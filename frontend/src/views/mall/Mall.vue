@@ -1,289 +1,105 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, ShoppingCart, Star, Filter } from '@element-plus/icons-vue'
-import { ro } from 'element-plus/es/locale/index.mjs'
-// 注释掉后端API调用，使用前端模拟数据
-// import { getProductList, Product } from '../../api/mall'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, ShoppingCart } from '@element-plus/icons-vue'
+import { getProductList, searchProducts, Product, updateProduct, deleteProduct } from '../../api/mall'
+import { addToCart } from '../../api/cart'
 
-// 定义产品数据类型
-interface Product {
-  id: number
-  name: string
-  description: string
-  price: number
-  stock: number
-  image: string
-  isAvailable: boolean
-  category: string
-  sales?: number
-}
-
-// 商品列表数据
+const router = useRouter()
 const products = ref<Product[]>([])
 const loading = ref(false)
 const searchKeyword = ref('')
 const activeCategory = ref('全部')
 const sortOption = ref('default')
 
-// 假设的产品分类
-const categories = ref([
-  '全部', '文学', '历史', '科学', '经济', '哲学', '艺术'
-])
+// 管理员相关逻辑
+const isAdmin = computed(() => sessionStorage.getItem('role') === 'admin')
+const adminMode = ref(false)
 
-// 加载商品列表 - 使用前端模拟数据
-const loadProducts = () => {
-  loading.value = true
+// 分类映射 - 从规格中提取分类信息
+const extractCategories = (products: Product[]): string[] => {
+  const categories = new Set<string>(['全部'])
   
-  // 模拟延迟加载
-  setTimeout(() => {
-    // 前端模拟数据 - 20本书
-    products.value = [
-      {
-        id: 1,
-        name: '活着',
-        description: '《活着》是中国作家余华的代表作之一，讲述了一个人历经各种苦难的一生，揭示了生命的价值和意义。',
-        price: 39.50,
-        stock: 150,
-        image: 'https://img3.doubanio.com/view/subject/s/public/s29053580.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 210
-      },
-      {
-        id: 2,
-        name: '百年孤独',
-        description: '《百年孤独》是魔幻现实主义文学的代表作，讲述了布恩迪亚家族七代人的传奇故事。',
-        price: 59.80,
-        stock: 85,
-        image: 'https://img2.doubanio.com/view/subject/s/public/s27237850.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 185
-      },
-      {
-        id: 3,
-        name: '平凡的世界',
-        description: '《平凡的世界》是中国作家路遥的代表作，描述了中国普通民众在时代大背景下的人生命运。',
-        price: 128.00,
-        stock: 65,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s29966355.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 156
-      },
-      {
-        id: 4,
-        name: '三体',
-        description: '《三体》是中国科幻文学的里程碑之作，描绘了人类文明与三体文明的接触与冲突。',
-        price: 59.00,
-        stock: 120,
-        image: 'https://img9.doubanio.com/view/subject/s/public/s29634439.jpg',
-        isAvailable: true,
-        category: '科学',
-        sales: 298
-      },
-      {
-        id: 5,
-        name: '围城',
-        description: '《围城》被誉为中国现代文学的经典，以幽默的笔触描写了知识分子的婚姻与生活。',
-        price: 32.00,
-        stock: 77,
-        image: 'https://img2.doubanio.com/view/subject/s/public/s1070222.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 88
-      },
-      {
-        id: 6,
-        name: '人类简史',
-        description: '《人类简史》是一部对人类历史的宏大叙事，探讨了人类如何从史前时代发展到今天。',
-        price: 68.00,
-        stock: 95,
-        image: 'https://img3.doubanio.com/view/subject/s/public/s27814883.jpg',
-        isAvailable: true,
-        category: '历史',
-        sales: 176
-      },
-      {
-        id: 7,
-        name: '解忧杂货店',
-        description: '《解忧杂货店》是一部温暖人心的小说，讲述了一家可以解答人们心灵困惑的杂货店的故事。',
-        price: 39.50,
-        stock: 160,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s27264181.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 253
-      },
-      {
-        id: 8,
-        name: '小王子',
-        description: '《小王子》是一部充满诗意的童话故事，蕴含着深刻的人生哲理。',
-        price: 29.80,
-        stock: 210,
-        image: 'https://img2.doubanio.com/view/subject/s/public/s29052169.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 320
-      },
-      {
-        id: 9,
-        name: '国富论',
-        description: '《国富论》是经济学的经典著作，探讨了国家财富的本质和增长的原因。',
-        price: 88.00,
-        stock: 45,
-        image: 'https://img9.doubanio.com/view/subject/s/public/s2154432.jpg',
-        isAvailable: true,
-        category: '经济',
-        sales: 67
-      },
-      {
-        id: 10,
-        name: '西方哲学史',
-        description: '《西方哲学史》是罗素的代表作之一，详细介绍了西方哲学的发展历程。',
-        price: 78.00,
-        stock: 60,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s1789059.jpg',
-        isAvailable: true,
-        category: '哲学',
-        sales: 43
-      },
-      {
-        id: 11,
-        name: '艺术的故事',
-        description: '《艺术的故事》是一部艺术史经典著作，以通俗易懂的方式讲述了艺术的发展历程。',
-        price: 128.00,
-        stock: 35,
-        image: 'https://img2.doubanio.com/view/subject/s/public/s3219163.jpg',
-        isAvailable: true,
-        category: '艺术',
-        sales: 56
-      },
-      {
-        id: 12,
-        name: '时间简史',
-        description: '《时间简史》是霍金的科普经典，向普通读者介绍了宇宙学的复杂概念。',
-        price: 45.00,
-        stock: 85,
-        image: 'https://img3.doubanio.com/view/subject/s/public/s1914436.jpg',
-        isAvailable: true,
-        category: '科学',
-        sales: 132
-      },
-      {
-        id: 13,
-        name: '红楼梦',
-        description: '《红楼梦》是中国古典文学巅峰之作，以贾宝玉和林黛玉的爱情悲剧为主线，描绘了封建社会的全景。',
-        price: 59.90,
-        stock: 110,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s1070959.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 178
-      },
-      {
-        id: 14,
-        name: '失控',
-        description: '《失控》探讨了科技与文明的关系，被誉为"互联网的圣经"。',
-        price: 88.00,
-        stock: 48,
-        image: 'https://img9.doubanio.com/view/subject/s/public/s4554820.jpg',
-        isAvailable: true,
-        category: '科学',
-        sales: 95
-      },
-      {
-        id: 15,
-        name: '经济学原理',
-        description: '《经济学原理》是曼昆的经济学教科书，深入浅出地阐释了经济学的核心概念和原理。',
-        price: 108.00,
-        stock: 55,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s3785854.jpg',
-        isAvailable: true,
-        category: '经济',
-        sales: 76
-      },
-      {
-        id: 16,
-        name: '苏菲的世界',
-        description: '《苏菲的世界》是一部哲学启蒙书，以小说的形式讲述了西方哲学的发展史。',
-        price: 38.00,
-        stock: 95,
-        image: 'https://img3.doubanio.com/view/subject/s/public/s2153661.jpg',
-        isAvailable: true,
-        category: '哲学',
-        sales: 124
-      },
-      {
-        id: 17,
-        name: '梵高传',
-        description: '《梵高传》是一部纪实性传记，详细记录了梵高短暂而充满激情的艺术生涯。',
-        price: 68.00,
-        stock: 28,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s1167084.jpg',
-        isAvailable: true,
-        category: '艺术',
-        sales: 47
-      },
-      {
-        id: 18,
-        name: '史记',
-        description: '《史记》是中国第一部纪传体通史，记录了上至上古传说中的黄帝时代，下至汉武帝期间共3000多年的历史。',
-        price: 125.00,
-        stock: 42,
-        image: 'https://img3.doubanio.com/view/subject/s/public/s1953384.jpg',
-        isAvailable: true,
-        category: '历史',
-        sales: 64
-      },
-      {
-        id: 19,
-        name: '追风筝的人',
-        description: '《追风筝的人》是一部关于友情、背叛与救赎的小说，讲述了阿富汗的社会变迁和人性考验。',
-        price: 35.00,
-        stock: 8,
-        image: 'https://img9.doubanio.com/view/subject/s/public/s1727290.jpg',
-        isAvailable: true,
-        category: '文学',
-        sales: 215
-      },
-      {
-        id: 20,
-        name: '菊与刀',
-        description: '《菊与刀》是一部研究日本文化的经典著作，深入剖析了日本社会的二元性格。',
-        price: 38.00,
-        stock: 0,
-        image: 'https://img1.doubanio.com/view/subject/s/public/s1074166.jpg',
-        isAvailable: false,
-        category: '历史',
-        sales: 103
-      }
-    ]
+  products.forEach(product => {
+    // 尝试从出版社获取分类
+    const publisher = product.specifications?.find(s => s.item === '出版社')
+    if (publisher) {
+      categories.add(publisher.value)
+    }
     
-    loading.value = false
-  }, 500) // 模拟网络延迟500ms
+    // 尝试从副标题获取分类线索
+    const subtitle = product.specifications?.find(s => s.item === '副标题')
+    if (subtitle) {
+      // 根据副标题中的关键词判断分类
+      const value = subtitle.value.toLowerCase()
+      if (value.includes('编程') || value.includes('程序') || value.includes('开发')) {
+        categories.add('编程开发')
+      } else if (value.includes('设计') || value.includes('交互')) {
+        categories.add('设计')
+      } else if (value.includes('经验') || value.includes('实践')) {
+        categories.add('最佳实践')
+      }
+    }
+  })
+  
+  return Array.from(categories)
 }
 
-const router = useRouter()
+// 分类列表
+const categories = ref<string[]>(['全部'])
+
+const loadProducts = async () => {
+  loading.value = true
+  
+  try {
+    const res = await getProductList()
+    if (res.data.code == 200) { 
+      products.value = res.data.data || []
+      
+      // 设置默认库存和可用状态
+      products.value.forEach(product => {
+        if (product.stock === undefined) {
+          product.stock = 100
+        }
+        if (product.isAvailable === undefined) {
+          product.isAvailable = true
+        }
+      })
+      
+      // 提取分类
+      categories.value = extractCategories(products.value)
+    } else {
+      console.log(res.data.code == 200)
+      ElMessage.error('获取商品列表失败')
+    }
+  } catch (error) {
+    console.error('获取商品列表出错:', error)
+    ElMessage.error('网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
 // 筛选后的商品
 const filteredProducts = computed(() => {
   let result = [...products.value]
   
-  // 分类筛选 - 简化为名称匹配
+  // 分类筛选
   if (activeCategory.value !== '全部') {
-    result = result.filter(product => 
-      product.category === activeCategory.value
-    )
+    result = result.filter(product => {
+      const publisher = product.specifications?.find(s => s.item === '出版社')
+      return publisher && publisher.value === activeCategory.value
+    })
   }
   
   // 关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(product => 
-      product.name.toLowerCase().includes(keyword) || 
-      product.description.toLowerCase().includes(keyword)
+      product.title.toLowerCase().includes(keyword) || 
+      product.description.toLowerCase().includes(keyword) ||
+      getAuthor(product).toLowerCase().includes(keyword)
     )
   }
   
@@ -295,14 +111,8 @@ const filteredProducts = computed(() => {
     case 'priceDesc':
       result.sort((a, b) => b.price - a.price)
       break
-    case 'salesDesc':
-      result.sort((a, b) => (b.sales || 0) - (a.sales || 0))
-      break
-    case 'stockAsc':
-      result.sort((a, b) => a.stock - b.stock)
-      break
-    case 'stockDesc':
-      result.sort((a, b) => b.stock - a.stock)
+    case 'rateDesc':
+      result.sort((a, b) => b.rate - a.rate)
       break
   }
   
@@ -314,22 +124,143 @@ const changeCategory = (category: string) => {
   activeCategory.value = category
 }
 
-// 处理搜索
-const handleSearch = () => {
-  // 搜索功能通过计算属性自动实现
+const handleSearch = async () => {
+  if (!searchKeyword.value.trim()) {
+    await loadProducts()
+    return
+  }
+  
+  loading.value = true
+  try {
+    const res = await searchProducts(searchKeyword.value)
+    if (res.data.code == 200) {
+      products.value = res.data.data || []
+      
+      // 设置默认值
+      products.value.forEach(product => {
+        if (product.stock === undefined) {
+          product.stock = 100
+        }
+        if (product.isAvailable === undefined) {
+          product.isAvailable = true
+        }
+      })
+    } else {
+      ElMessage.error('搜索失败')
+    }
+  } catch (error) {
+    console.error('搜索出错:', error)
+    ElMessage.error('网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
 }
-
 // 添加到购物车
-const addToCart = (product: Product) => {
-  ElMessage({
-    message: `已将《${product.name}》加入购物车`,
-    type: 'success'
-  })
+const handleAddToCart = async (product: Product, event: Event) => {
+  // 阻止事件冒泡，避免触发卡片点击跳转
+  event.stopPropagation()
+  
+  // 检查登录状态
+  if (!sessionStorage.getItem('token')) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  try {
+    const res = await addToCart(product.id, 1)
+    if (res.data.code == 200) {
+      ElMessage.success(`已将《${product.title}》加入购物车`)
+    } else {
+      ElMessage.error('添加购物车失败')
+    }
+  } catch (error) {
+    console.error('添加购物车出错:', error)
+    ElMessage.error('网络错误，请稍后重试')
+  }
 }
 
 // 格式化价格
 const formatPrice = (price: number) => {
   return '¥' + price.toFixed(2)
+}
+
+// 图片加载错误处理
+const handleImageError = (event: Event) => {
+  if (event.target instanceof HTMLImageElement) {
+    event.target.src = '/placeholder.jpg'
+  }
+}
+
+// 从规格中获取作者
+const getAuthor = (product: Product): string => {
+  const authorSpec = product.specifications?.find(spec => spec.item === '作者')
+  return authorSpec ? authorSpec.value : '未知作者'
+}
+// 处理管理员模式变更
+const handleAdminModeChange = (value) => {
+  adminMode.value = value
+  if (value) {
+    ElMessage.success('已启用管理员编辑模式')
+  } else {
+    ElMessage.info('已退出管理员编辑模式')
+  }
+}
+
+// 删除商品
+const handleDeleteProduct = async (productId) => {
+  if (!isAdmin.value || !adminMode.value) return
+  
+  try {
+    await ElMessageBox.confirm('确定要删除该商品吗？删除后不可恢复', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    const res = await deleteProduct(productId)
+    if (res.data.code == 200) {
+      ElMessage.success('商品删除成功')
+      // 重新加载商品列表
+      loadProducts()
+    } else {
+      ElMessage.error(res.data.msg || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除商品出错:', error)
+      ElMessage.error('操作失败，请重试')
+    }
+  }
+}
+
+// 显示编辑表单
+const showEditForm = ref(false)
+const currentEditProduct = ref<Product | null>(null)
+
+const handleEditProduct = (product) => {
+  currentEditProduct.value = JSON.parse(JSON.stringify(product)) // 深拷贝防止直接修改
+  showEditForm.value = true
+}
+
+// 保存商品修改
+const saveProductChanges = async () => {
+  if (!currentEditProduct.value) return
+  
+  try {
+    const res = await updateProduct(currentEditProduct.value)
+    if (res.data.code == 200) {
+      ElMessage.success('商品信息更新成功')
+      showEditForm.value = false
+      // 重新加载商品列表
+      loadProducts()
+    } else {
+      ElMessage.error(res.data.msg || '更新失败')
+    }
+  } catch (error) {
+    console.error('更新商品出错:', error)
+    ElMessage.error('操作失败，请重试')
+  }
 }
 
 // 页面加载时获取商品列表
@@ -339,8 +270,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mall-container">
-    <!-- 顶部英雄区域 -->
+  <div class="mall-container" :class="{ 'admin-mode': adminMode }">
+    <!-- 顶部区域 -->
     <div class="hero-section">
       <h1 class="hero-title">番茄读书商城</h1>
       <p class="hero-subtitle">发现您的下一本心爱之书</p>
@@ -363,6 +294,16 @@ onMounted(() => {
       </div>
     </div>
     
+    <!-- 管理员模式切换 -->
+    <div v-if="isAdmin" class="admin-mode-toggle">
+      <el-switch
+        v-model="adminMode"
+        active-text="管理员编辑模式"
+        inactive-text="普通浏览模式"
+        @change="handleAdminModeChange"
+      />
+    </div>
+    
     <main class="content-section">
       <!-- 分类导航 -->
       <el-card class="category-card">
@@ -383,9 +324,7 @@ onMounted(() => {
             <el-option label="默认排序" value="default" />
             <el-option label="价格从低到高" value="priceAsc" />
             <el-option label="价格从高到低" value="priceDesc" />
-            <el-option label="销量优先" value="salesDesc" />
-            <el-option label="库存从低到高" value="stockAsc" />
-            <el-option label="库存从高到低" value="stockDesc" />
+            <el-option label="评分优先" value="rateDesc" />
           </el-select>
         </div>
       </el-card>
@@ -397,48 +336,66 @@ onMounted(() => {
         </div>
         
         <div v-else class="products-grid">
-          <div v-for="product in filteredProducts" :key="product.id" class="product-card" @click="router.push(`/product/${product.id}`)">
+          <div 
+            v-for="product in filteredProducts" 
+            :key="product.id" 
+            class="product-card" 
+            @click="router.push(`/product/${product.id}`)"
+          >
             <!-- 商品可用状态标签 -->
             <div v-if="!product.isAvailable" class="product-status-tag unavailable">
-              已下架
+              暂无库存
+            </div>
+            
+            <!-- 管理员模式下显示的按钮 -->
+            <div v-if="isAdmin && adminMode" class="admin-actions">
+              <el-button 
+                type="primary" 
+                size="small" 
+                @click.stop="handleEditProduct(product)"
+                icon="Edit"
+              >
+                修改
+              </el-button>
+              <el-button 
+                type="danger" 
+                size="small" 
+                @click.stop="handleDeleteProduct(product.id)"
+                icon="Delete"
+              >
+                删除
+              </el-button>
             </div>
             
             <div class="product-image">
               <img 
-                :src="product.image || 'https://img3.doubanio.com/view/subject/s/public/s29053580.jpg'" 
-                :alt="product.name"
+                :src="product.cover" 
+                :alt="product.title"
+                @error="handleImageError"
               >
-              <div class="product-overlay" v-if="product.isAvailable && product.stock > 0">
-                <el-button type="primary" size="small" @click="addToCart(product)" class="cart-btn">
+              <div class="product-overlay" v-if="product.isAvailable">
+                <el-button 
+                  type="primary" 
+                  size="small" 
+                  @click="(e) => handleAddToCart(product, e)" 
+                  class="cart-btn"
+                >
                   <el-icon><ShoppingCart /></el-icon> 加入购物车
-                </el-button>
-              </div>
-              <div class="product-overlay out-of-stock" v-else-if="product.isAvailable && product.stock <= 0">
-                <el-button type="info" size="small" disabled>
-                  暂时缺货
                 </el-button>
               </div>
             </div>
             
             <div class="product-info">
-              <h3 class="product-title">{{ product.name }}</h3>
+              <h3 class="product-title">{{ product.title }}</h3>
+              <p class="product-author">{{ getAuthor(product) }}</p>
               <p class="product-description">{{ product.description }}</p>
               
               <div class="product-footer">
                 <span class="product-price">{{ formatPrice(product.price) }}</span>
-                
-                <!-- 显示销量（如果有）或库存 -->
-                <div class="product-meta">
-                  <span v-if="product.sales" class="product-sales">销量: {{ product.sales }}</span>
-                  <span class="product-stock">库存: {{ product.stock }}</span>
+                <div class="product-rating">
+                  <span class="rating-value">{{ product.rate.toFixed(1) }}</span>
                 </div>
               </div>
-            </div>
-            
-            <!-- 热销标签 - 基于销量或库存模拟 -->
-            <div class="product-tag" v-if="product.sales && product.sales > 50">热销</div>
-            <div class="product-tag low-stock" v-else-if="product.stock < 10 && product.stock > 0">
-              仅剩{{ product.stock }}件
             </div>
           </div>
         </div>
@@ -448,6 +405,39 @@ onMounted(() => {
     <footer class="mall-footer">
       <p>© 2025 番茄读书商城 - 南京大学软件工程与计算2</p>
     </footer>
+
+    <!-- 编辑商品的对话框 -->
+    <el-dialog
+      v-model="showEditForm"
+      title="编辑商品信息"
+      width="50%"
+      :before-close="() => showEditForm = false"
+    >
+      <el-form v-if="currentEditProduct" label-width="100px" :model="currentEditProduct">
+        <el-form-item label="商品名称">
+          <el-input v-model="currentEditProduct.title"></el-input>
+        </el-form-item>
+        <el-form-item label="商品价格">
+          <el-input-number v-model="currentEditProduct.price" :precision="2" :step="0.1" :min="0"></el-input-number>
+        </el-form-item>
+        <el-form-item label="商品图片">
+          <el-input v-model="currentEditProduct.cover" placeholder="图片URL"></el-input>
+        </el-form-item>
+        <el-form-item label="商品描述">
+          <el-input v-model="currentEditProduct.description" type="textarea" rows="3"></el-input>
+        </el-form-item>
+        <el-form-item label="详细内容">
+          <el-input v-model="currentEditProduct.detail" type="textarea" rows="5"></el-input>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showEditForm = false">取消</el-button>
+          <el-button type="primary" @click="saveProductChanges">保存修改</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -482,6 +472,16 @@ onMounted(() => {
 
 .search-input :deep(.el-input__wrapper) {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.admin-mode-toggle {
+  margin: 15px auto;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  max-width: 1200px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .content-section {
@@ -598,6 +598,15 @@ onMounted(() => {
   transform: translateY(0);
 }
 
+.admin-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
 .cart-btn {
   background-color: #e74c3c;
   border-color: #e74c3c;
@@ -633,6 +642,12 @@ onMounted(() => {
   height: 44px;
 }
 
+.product-author {
+  font-size: 14px;
+  color: #909399;
+  margin: 0 0 8px;
+}
+
 .product-description {
   font-size: 14px;
   color: #606266;
@@ -658,36 +673,13 @@ onMounted(() => {
   color: #e74c3c;
 }
 
-.product-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 12px;
-}
-
-.product-sales {
-  color: #909399;
-  margin-bottom: 3px;
-}
-
-.product-stock {
-  color: #606266;
-}
-
-.product-tag {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #e74c3c;
-  color: white;
-  padding: 3px 8px;
-  font-size: 12px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.product-tag.low-stock {
-  background: #e67e22;
+.product-rating {
+  background: #f0f7ff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #409eff;
 }
 
 .product-status-tag {
@@ -714,6 +706,16 @@ onMounted(() => {
   color: white;
 }
 
+/* 管理员模式样式 */
+.admin-mode .product-card {
+  border: 1px dashed #e74c3c;
+}
+
+.admin-mode .product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .hero-title {
@@ -735,6 +737,17 @@ onMounted(() => {
   
   .product-image {
     height: 180px;
+  }
+  
+  .admin-actions {
+    flex-direction: column;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .admin-actions .el-button {
+    padding: 4px 8px;
+    font-size: 12px;
   }
 }
 </style>

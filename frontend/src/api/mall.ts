@@ -2,24 +2,43 @@ import { axios } from '../utils/request'
 
 // 修改产品接口定义以匹配API返回格式
 export interface Product {
-  id: number;
-  name: string;
-  description: string;
+  id: string;                // API返回的是字符串ID
+  title: string;             // API返回的是title
   price: number;
-  image: string;
-  stock: number;
-  isAvailable: boolean;
-  // 添加可选字段，以防API返回更多信息
-  sales?: number;
-  categories?: string[];
-  createdTime?: string;
+  rate: number;              // 评分
+  description: string;
+  cover: string;             // API返回的是cover
+  detail: string;            // 详细描述
+  specifications: Array<{    // 规格信息数组
+    id: string | number;
+    item: string;            // 如"作者"、"ISBN"等
+    value: string;
+    productId: string;
+  }>;
+  
+  // 前端使用字段
+  stock?: number;            // 库存量
+  isAvailable?: boolean;     // 是否可用
 }
 
-// 修改API响应类型定义
+// API响应类型定义
 export interface ApiResponse<T> {
-  code: string;
+  code: number;              // API返回的是数字类型的状态码
   msg: string | null;
   data: T;
+}
+
+// 库存信息接口
+export interface Stockpile {
+  id: string;
+  productId: string;
+  amount: number;
+  frozen: number;
+}
+
+// 请求参数接口
+export interface AmountRequest {
+  amount: number;
 }
 
 // 获取商品列表
@@ -31,9 +50,52 @@ export function getProductList() {
 }
 
 // 获取商品详情
-export function getProductDetail(id: number) {
+export function getProductDetail(id: string) {
   return axios<ApiResponse<Product>>({
     url: `/api/products/${id}`,
+    method: 'get'
+  })
+}
+
+// 更新商品信息
+export function updateProduct(product: Product) {
+  return axios<ApiResponse<string>>({
+    url: '/api/products',
+    method: 'put',
+    data: product
+  })
+}
+
+// 创建商品
+export function createProduct(product: Omit<Product, 'id'>) {
+  return axios<ApiResponse<Product>>({
+    url: '/api/products',
+    method: 'post',
+    data: product
+  })
+}
+
+// 删除商品
+export function deleteProduct(id: string) {
+  return axios<ApiResponse<string>>({
+    url: `/api/products/${id}`,
+    method: 'delete'
+  })
+}
+
+// 调整商品库存
+export function updateStock(productId: string, amount: number) {
+  return axios<ApiResponse<string>>({
+    url: `/api/products/stockpile/${productId}`,
+    method: 'patch',
+    data: { amount }
+  })
+}
+
+// 获取商品库存
+export function getProductStock(productId: string) {
+  return axios<ApiResponse<Stockpile>>({
+    url: `/api/products/stockpile/${productId}`,
     method: 'get'
   })
 }

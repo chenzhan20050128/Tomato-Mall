@@ -2,45 +2,47 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ShoppingCart, Star, StarFilled, Picture } from '@element-plus/icons-vue'
+import { ArrowLeft, ShoppingCart, Star, StarFilled } from '@element-plus/icons-vue'
+import { getProductDetail, getProductStock, Product } from '../../api/mall.ts' // 添加getProductStock导入
+import { addToCart } from '../../api/cart.ts'
 
 const route = useRoute()
 const router = useRouter()
 const loading = ref(true)
-const productId = computed(() => Number(route.params.id))
+const productId = computed(() => route.params.id as string)
 
-// 商品详情
-const product = ref({
-  id: 1,
-  name: '活着',
-  author: '余华',
-  description: '《活着》是中国作家余华的代表作之一，讲述了一个人历经各种苦难的一生，揭示了生命的价值和意义。主人公福贵出身于地主家庭，因赌博而家破人亡，之后经历了战争、饥荒、文化大革命等一系列历史变故，最终只剩他一人苟活于世。小说以极其朴素的笔调讲述了在苦难中求生的故事，展现了生命的坚韧与尊严。',
-  price: 39.50,
-  originalPrice: 45.00,
-  stock: 150,
-  image: '/images/books/huozhe.jpg',
-  isAvailable: true,
-  category: '文学',
-  sales: 210,
-  publisher: '作家出版社',
-  publishDate: '2012-8-1',
-  pages: 226,
-  isbn: '9787506365437',
-  language: '简体中文',
-  format: '平装',
-  images: [
-    '/images/books/huozhe.jpg',
-    '/images/books/huozhe-detail1.jpg',
-    '/images/books/huozhe-detail2.jpg',
-  ]
+// 商品详情 - 初始化为空对象
+const product = ref<Product>({
+  id: '',
+  title: '',
+  price: 0,
+  rate: 0,
+  description: '',
+  cover: '',
+  detail: '',
+  specifications: [],
+  stock: 1000,  // 默认库存
+  isAvailable: true
 })
 
 // 数量选择
 const quantity = ref(1)
+const currentImage = ref(0)
+
+// 评论数据
+const reviews = ref<Array<{
+  id: number;
+  avatar: string;
+  username: string;
+  rating: number;
+  date: string;
+  content: string;
+}>>([])
 
 // 增加数量
 const increaseQuantity = () => {
-  if (quantity.value < product.value.stock) {
+  const stock = product.value.stock || 100
+  if (quantity.value < stock) {
     quantity.value++
   } else {
     ElMessage.warning('已达到库存上限')
@@ -57,29 +59,55 @@ const decreaseQuantity = () => {
 // 设置数量
 const setQuantity = (val: string | number) => {
   let num = typeof val === 'string' ? parseInt(val) : val
+  const stock = product.value.stock || 100
   if (isNaN(num) || num < 1) {
     num = 1
-  } else if (num > product.value.stock) {
-    num = product.value.stock
+  } else if (num > stock) {
+    num = stock
     ElMessage.warning('已达到库存上限')
   }
   quantity.value = num
 }
 
 // 添加到购物车
-const addToCart = () => {
-  ElMessage({
-    message: `已将《${product.value.name}》×${quantity.value}添加到购物车`,
-    type: 'success'
-  })
+const handleAddToCart = async () => {
+  // 检查登录状态
+  if (!sessionStorage.getItem('token')) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  // 检查库存
+  const stock = product.value.stock || 0
+  if (stock <= 0 || !product.value.isAvailable) {
+    ElMessage.warning('商品暂无库存')
+    return
+  }
+  
+  try {
+    const res = await addToCart(product.value.id, quantity.value)
+    if (res.data.code == 200) {
+      ElMessage.success(`已将《${product.value.title}》×${quantity.value}添加到购物车`)
+    } else {
+      ElMessage.error(res.data.msg || '添加购物车失败')
+    }
+  } catch (error) {
+    console.error('添加到购物车出错:', error)
+    ElMessage.error('网络错误，请稍后重试')
+  }
 }
 
 // 立即购买
 const buyNow = () => {
-  ElMessage({
-    message: '购买功能暂未实现',
-    type: 'info'
-  })
+  // 检查登录状态
+  if (!sessionStorage.getItem('token')) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  ElMessage.info('购买功能开发中，敬请期待')
 }
 
 // 返回商城
@@ -92,75 +120,129 @@ const formatPrice = (price: number) => {
   return '¥' + price.toFixed(2)
 }
 
-// 计算折扣
-const discount = computed(() => {
-  if (!product.value.originalPrice) return null
-  return Math.round((1 - product.value.price / product.value.originalPrice) * 100)
+// 指定图片 - 默认只有一张封面图
+const productImage = computed(() => {
+  return product.value.cover || '/placeholder.jpg'
 })
 
-// 模拟评论数据
-const reviews = ref([
-  {
-    id: 1,
-    username: '文学爱好者',
-    avatar: '/images/avatars/avatar1.jpg',
-    rating: 5,
-    date: '2023-10-15',
-    content: '这是一本让人深思的好书，余华的文笔太有震撼力了，真实地描绘了那个年代普通人的生活。'
-  },
-  {
-    id: 2,
-    username: '安静的读者',
-    avatar: '/images/avatars/avatar2.jpg',
-    rating: 4,
-    date: '2023-09-22',
-    content: '很喜欢这本书，虽然情节有些悲伤，但它展示了生命的顽强。装帧很好，纸质也不错。'
-  },
-  {
-    id: 3,
-    username: '书中自有黄金屋',
-    avatar: '/images/avatars/avatar3.jpg',
-    rating: 5,
-    date: '2023-08-18',
-    content: '这是我第三次读《活着》，每次都有不同的感受，强烈推荐！'
-  }
-])
+// 商品图片数组
+const productImages = computed(() => {
+  // 这里仅使用封面图片
+  return [product.value.cover] 
+})
+
+// 显示的商品名称
+const displayName = computed(() => {
+  return product.value.title || '商品详情'
+})
+
+// 从规格中获取特定信息
+const getSpecValue = (item: string): string => {
+  if (!product.value.specifications) return '';
+  const spec = product.value.specifications.find(s => s.item === item);
+  return spec ? spec.value : '';
+}
+
+// 提取各种规格信息
+const author = computed(() => getSpecValue('作者'))
+const isbn = computed(() => getSpecValue('ISBN'))
+const format = computed(() => getSpecValue('装帧'))
+const pages = computed(() => getSpecValue('页数'))
+const publisher = computed(() => getSpecValue('出版社'))
+const publishDate = computed(() => getSpecValue('出版日期'))
+
+// 原价（用于计算折扣）
+const originalPrice = computed(() => {
+  // 假设原价比当前价格高20%
+  return product.value.price * 1.2;
+})
+
+// 计算折扣
+const discount = computed(() => {
+  return Math.round((1 - product.value.price / originalPrice.value) * 100);
+})
 
 // 总评分（数字类型，用于计算）
 const averageRatingValue = computed(() => {
-  if (reviews.value.length === 0) return 0;
-  const total = reviews.value.reduce((sum, review) => sum + review.rating, 0)
-  return total / reviews.value.length
+  return product.value.rate || 0;
 })
 
-// 总评分
+// 格式化的评分
 const averageRating = computed(() => {
-  const total = reviews.value.reduce((sum, review) => sum + review.rating, 0)
-  return (total / reviews.value.length).toFixed(1)
+  return product.value.rate ? product.value.rate.toFixed(1) : "0.0";
 })
 
-// 当前展示图片
-const currentImage = ref(0)
+// 库存检查计算属性
+const productStock = computed(() => Math.max(product.value.stock || 0, 1))
+const hasStock = computed(() => (product.value.stock || 0) > 0)
+const hasHighStock = computed(() => (product.value.stock || 0) > 10)
 
 // 切换图片
 const changeImage = (index: number) => {
   currentImage.value = index
 }
 
-// 图片处理函数，处理加载错误
-const handleImageError = (event) => {
-  event.target.src = '/images/book-placeholder.jpg'
+// 图片加载错误处理
+const handleImageError = (event: Event) => {
+  if (event.target instanceof HTMLImageElement) {
+    event.target.src = '/placeholder.jpg'
+  }
 }
 
-// 页面加载
-onMounted(() => {
-  // 模拟API加载
-  setTimeout(() => {
+// 加载商品详情
+const loadProductDetail = async () => {
+  loading.value = true
+  
+  try {
+    const res = await getProductDetail(productId.value)
+    if (res.data.code == 200 && res.data.data) {
+      product.value = res.data.data
+      
+      // 设置默认可用状态
+      if (product.value.isAvailable === undefined) {
+        product.value.isAvailable = true
+      }
+      
+      // 获取真实库存信息
+      try {
+        const stockRes = await getProductStock(product.value.id)
+        if (stockRes.data.code == 200 && stockRes.data.data) {
+          // 使用API返回的实际库存
+          product.value.stock = stockRes.data.data.amount
+          
+          // 如果库存为0，设置商品不可用
+          if (stockRes.data.data.amount <= 0) {
+            product.value.isAvailable = false
+          }
+          
+          console.log(`成功获取商品 ${product.value.id} 的库存: ${product.value.stock}`)
+        } else {
+          console.warn('获取库存返回异常:', stockRes.data.msg)
+          product.value.stock = 100 // 默认值
+        }
+      } catch (stockError) {
+        console.error('获取库存信息出错:', stockError)
+        product.value.stock = 100 // 默认值
+      }
+      
+      // 重置数量选择器
+      quantity.value = 1
+    } else {
+      ElMessage.error(res.data.msg || '获取商品详情失败')
+    }
+  } catch (error) {
+    console.error('获取商品详情出错:', error)
+    ElMessage.error('网络错误，请稍后重试')
+  } finally {
     loading.value = false
-  }, 500)
+  }
+}
+
+// 页面加载时获取商品详情
+onMounted(() => {
+  loadProductDetail()
 })
 </script>
-
 <template>
   <div class="product-detail-container">
     <!-- 顶部导航 -->
@@ -172,7 +254,7 @@ onMounted(() => {
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
         <el-breadcrumb-item :to="{ path: '/mall' }">图书商城</el-breadcrumb-item>
-        <el-breadcrumb-item>{{ product.name }}</el-breadcrumb-item>
+        <el-breadcrumb-item>{{ displayName }}</el-breadcrumb-item>
       </el-breadcrumb>
     </div>
 
@@ -182,76 +264,72 @@ onMounted(() => {
         <div class="product-gallery">
           <div class="main-image">
             <img 
-              :src="product.images?.[currentImage] || product.image" 
-              :alt="product.name"
+              :src="productImages[currentImage] || ''" 
+              :alt="displayName"
               @error="handleImageError"
             >
           </div>
-          <div class="thumbnail-list" v-if="product.images && product.images.length > 1">
+          <div class="thumbnail-list" v-if="productImages.length > 1">
             <div 
-              v-for="(img, index) in product.images" 
+              v-for="(img, index) in productImages" 
               :key="index"
               :class="['thumbnail', { active: currentImage === index }]"
               @click="changeImage(index)"
             >
-              <img :src="img" :alt="`${product.name} - 图片 ${index + 1}`" @error="handleImageError">
+              <img :src="img" :alt="`${displayName} - 图片 ${index + 1}`" @error="handleImageError">
             </div>
           </div>
         </div>
 
         <!-- 右侧信息区域 -->
         <div class="product-info">
-          <h1 class="product-title">{{ product.name }}</h1>
-          <div class="product-author">作者: {{ product.author }}</div>
+          <h1 class="product-title">{{ displayName }}</h1>
+          <div class="product-author" v-if="author">作者: {{ author }}</div>
           
-          <div class="product-rating">
+          <div class="product-rating" v-if="product.rate || reviews.length > 0">
             <span class="rating-stars">
-              <el-icon v-for="i in 5" :key="i">
-                <StarFilled v-if="i <= Math.floor(averageRatingValue)" class="star-filled" />
-                <Star v-else class="star-empty" />
+              <el-icon v-for="i in 5" :key="i" :class="i <= averageRatingValue ? 'star-filled' : 'star-empty'">
+                <component :is="i <= averageRatingValue ? StarFilled : Star" />
               </el-icon>
             </span>
             <span class="rating-score">{{ averageRating }}</span>
-            <span class="rating-count">({{ reviews.length }}条评价)</span>
+            <span class="rating-count" v-if="reviews.length > 0">({{ reviews.length }}条评价)</span>
           </div>
           
           <div class="product-price-area">
             <div class="price-wrapper">
               <span class="current-price">{{ formatPrice(product.price) }}</span>
-              <span class="original-price" v-if="product.originalPrice">
-                {{ formatPrice(product.originalPrice) }}
+              <span class="original-price">
+                {{ formatPrice(originalPrice) }}
               </span>
-              <span class="discount-tag" v-if="discount">{{ discount }}% 优惠</span>
+              <span class="discount-tag">{{ discount }}% 优惠</span>
             </div>
           </div>
           
           <div class="product-meta">
-            <div class="meta-item">
+            <div class="meta-item" v-if="publisher">
               <span class="meta-label">出版社:</span>
-              <span class="meta-value">{{ product.publisher }}</span>
+              <span class="meta-value">{{ publisher }}</span>
             </div>
-            <div class="meta-item">
+            <div class="meta-item" v-if="publishDate">
               <span class="meta-label">出版日期:</span>
-              <span class="meta-value">{{ product.publishDate }}</span>
+              <span class="meta-value">{{ publishDate }}</span>
             </div>
-            <div class="meta-item">
+            <div class="meta-item" v-if="pages">
               <span class="meta-label">页数:</span>
-              <span class="meta-value">{{ product.pages }}页</span>
+              <span class="meta-value">{{ pages }}页</span>
             </div>
-            <div class="meta-item">
+            <div class="meta-item" v-if="isbn">
               <span class="meta-label">ISBN:</span>
-              <span class="meta-value">{{ product.isbn }}</span>
+              <span class="meta-value">{{ isbn }}</span>
             </div>
           </div>
           
           <div class="product-stock">
-            <span :class="['stock-status', product.stock > 10 ? 'in-stock' : 'low-stock']">
-              {{ product.stock > 0 ? '有货' : '缺货' }}
-            </span>
-            <span class="stock-count" v-if="product.stock > 0">
-              {{ product.stock > 10 ? '库存充足' : `仅剩${product.stock}件` }}
-            </span>
-          </div>
+  <span :class="['stock-status', hasStock ? 'in-stock' : 'low-stock']">
+    {{ hasStock ? `库存${productStock}件` : '库存不足' }}
+  </span>
+</div>
           
           <div class="product-actions">
             <div class="quantity-control">
@@ -259,8 +337,8 @@ onMounted(() => {
               <el-input-number 
                 v-model="quantity" 
                 :min="1" 
-                :max="product.stock" 
-                :disabled="product.stock <= 0"
+                :max="productStock" 
+                :disabled="!hasStock || !product.isAvailable" 
                 @change="setQuantity"
               />
             </div>
@@ -269,8 +347,8 @@ onMounted(() => {
               <el-button 
                 type="primary" 
                 :icon="ShoppingCart" 
-                :disabled="product.stock <= 0"
-                @click="addToCart"
+                :disabled="!hasStock || !product.isAvailable" 
+                @click="handleAddToCart" 
                 class="cart-button"
               >
                 加入购物车
@@ -278,8 +356,8 @@ onMounted(() => {
               
               <el-button 
                 type="danger" 
-                :disabled="product.stock <= 0"
-                @click="buyNow"
+                :disabled="!hasStock || !product.isAvailable" 
+                @click="buyNow" 
                 class="buy-button"
               >
                 立即购买
@@ -294,50 +372,28 @@ onMounted(() => {
         <h2 class="section-title">图书详情</h2>
         <div class="details-content">
           <p class="description">{{ product.description }}</p>
+          <p class="detail" v-if="product.detail">{{ product.detail }}</p>
           
-          <div class="spec-table">
+          <div class="spec-table" v-if="product.specifications && product.specifications.length > 0">
             <table>
-              <tbody>
-                <tr>
-                  <th>书名</th>
-                  <td>{{ product.name }}</td>
-                  <th>作者</th>
-                  <td>{{ product.author }}</td>
-                </tr>
-                <tr>
-                  <th>出版社</th>
-                  <td>{{ product.publisher }}</td>
-                  <th>出版日期</th>
-                  <td>{{ product.publishDate }}</td>
-                </tr>
-                <tr>
-                  <th>ISBN</th>
-                  <td>{{ product.isbn }}</td>
-                  <th>版本</th>
-                  <td>{{ product.format }}</td>
-                </tr>
-                <tr>
-                  <th>页数</th>
-                  <td>{{ product.pages }}页</td>
-                  <th>语言</th>
-                  <td>{{ product.language }}</td>
-                </tr>
-              </tbody>
+              <tr v-for="spec in product.specifications" :key="spec.id">
+                <th>{{ spec.item }}</th>
+                <td>{{ spec.value }}</td>
+              </tr>
             </table>
           </div>
         </div>
       </div>
       
       <!-- 评价区域 -->
-      <div class="product-reviews">
+      <div class="product-reviews" v-if="reviews.length > 0">
         <h2 class="section-title">用户评价</h2>
         <div class="review-summary">
           <div class="rating-big">
             <span class="rating-num">{{ averageRating }}</span>
             <div class="rating-stars-big">
-              <el-icon v-for="i in 5" :key="i" :size="24">
-                <StarFilled v-if="i <= Math.floor(averageRatingValue)" class="star-filled" />
-                <Star v-else class="star-empty" />
+              <el-icon v-for="i in 5" :key="i" :class="i <= averageRatingValue ? 'star-filled' : 'star-empty'">
+                <component :is="i <= averageRatingValue ? StarFilled : Star" />
               </el-icon>
             </div>
             <div class="reviews-count">{{ reviews.length }}条评价</div>
@@ -352,10 +408,11 @@ onMounted(() => {
             </div>
             <div class="review-content">
               <div class="review-rating">
-                <el-icon v-for="i in 5" :key="i">
-                  <StarFilled v-if="i <= review.rating" class="star-filled" />
-                  <Star v-else class="star-empty" />
-                </el-icon>
+                <span class="rating-stars">
+                  <el-icon v-for="i in 5" :key="i" :class="i <= review.rating ? 'star-filled' : 'star-empty'">
+                    <component :is="i <= review.rating ? StarFilled : Star" />
+                  </el-icon>
+                </span>
                 <span class="review-date">{{ review.date }}</span>
               </div>
               <p class="review-text">{{ review.content }}</p>
@@ -366,7 +423,6 @@ onMounted(() => {
     </el-card>
   </div>
 </template>
-
 <style scoped>
 .product-detail-container {
   max-width: 1200px;
@@ -424,6 +480,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .thumbnail {

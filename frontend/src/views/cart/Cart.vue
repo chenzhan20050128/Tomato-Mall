@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Minus, Plus, ShoppingCart, Warning, ShoppingBag } from '@element-plus/icons-vue'
 import { getCartItems, removeFromCart, updateCartItemQuantity, checkoutCart, CartItem } from '../../api/cart'
 
+const router = useRouter()
 const loading = ref(true)
 const cartItems = ref<CartItem[]>([])
 const selectedItems = ref<string[]>([])
@@ -21,17 +22,13 @@ const orderForm = reactive({
   },
   payment_method: 'ALIPAY'
 })
-// 添加登录检查
-const isLoggedIn = ref(false)
-const router = useRouter()
 
 // 检查登录状态
 const checkLoginStatus = () => {
   const token = sessionStorage.getItem('token')
-  isLoggedIn.value = !!token
   
   // 如果未登录，提示并重定向到登录页
-  if (!isLoggedIn.value) {
+  if (!token) {
     ElMessage.warning('请先登录')
     router.push('/login')
     return false
@@ -46,7 +43,7 @@ const fetchCartItems = async () => {
   loading.value = true
   try {
     const res = await getCartItems()
-    if (res.data.code === '200') {
+    if (res.data.code == 200) {
       cartItems.value = res.data.data.items || []
       selectedItems.value = []
       selectAll.value = false
@@ -56,53 +53,9 @@ const fetchCartItems = async () => {
   } catch (error) {
     console.error('获取购物车数据出错:', error)
     ElMessage.error('网络错误，请稍后重试')
-    
-    // 临时演示数据，实际项目应删除
-    mockCartData()
   } finally {
     loading.value = false
   }
-}
-
-// 页面加载时先检查登录状态，再获取购物车数据
-onMounted(() => {
-  if (checkLoginStatus()) {
-    fetchCartItems()
-  }
-})
-
-
-// 临时模拟购物车数据（实际项目应删除）
-const mockCartData = () => {
-  cartItems.value = [
-    {
-      cartItemId: '201',
-      productId: '1',
-      title: '活着',
-      price: 39.5,
-      description: '《活着》是中国作家余华的代表作之一',
-      cover: 'https://img3.doubanio.com/view/subject/s/public/s29053580.jpg',
-      quantity: 2
-    },
-    {
-      cartItemId: '202',
-      productId: '4',
-      title: '三体',
-      price: 59.0,
-      description: '《三体》是中国科幻文学的里程碑之作',
-      cover: 'https://img9.doubanio.com/view/subject/s/public/s29634439.jpg',
-      quantity: 1
-    },
-    {
-      cartItemId: '203',
-      productId: '7',
-      title: '解忧杂货店',
-      price: 39.5,
-      description: '《解忧杂货店》是一部温暖人心的小说',
-      cover: 'https://img1.doubanio.com/view/subject/s/public/s27264181.jpg',
-      quantity: 1
-    }
-  ]
 }
 
 // 选中或取消选中所有商品
@@ -132,7 +85,7 @@ const handleRemoveItem = async (cartItemId: string) => {
   ).then(async () => {
     try {
       const res = await removeFromCart(cartItemId)
-      if (res.data.code === '200') {
+      if (res.data.code == 200) {
         ElMessage.success('商品已从购物车移除')
         // 更新本地数据
         cartItems.value = cartItems.value.filter(item => item.cartItemId !== cartItemId)
@@ -145,11 +98,6 @@ const handleRemoveItem = async (cartItemId: string) => {
     } catch (error) {
       console.error('移除商品出错:', error)
       ElMessage.error('网络错误，请稍后重试')
-      
-      // 临时演示用，实际项目应删除
-      cartItems.value = cartItems.value.filter(item => item.cartItemId !== cartItemId)
-      selectedItems.value = selectedItems.value.filter(id => id !== cartItemId)
-      updateSelectAllStatus()
     }
   }).catch(() => {})
 }
@@ -163,7 +111,7 @@ const updateQuantity = async (cartItemId: string, quantity: number) => {
   
   try {
     const res = await updateCartItemQuantity(cartItemId, quantity)
-    if (res.data.code === '200') {
+    if (res.data.code == 200) {
       // 更新本地数据
       const item = cartItems.value.find(item => item.cartItemId === cartItemId)
       if (item) {
@@ -175,12 +123,6 @@ const updateQuantity = async (cartItemId: string, quantity: number) => {
   } catch (error) {
     console.error('更新商品数量出错:', error)
     ElMessage.error('网络错误，请稍后重试')
-    
-    // 临时演示用，实际项目应删除
-    const item = cartItems.value.find(item => item.cartItemId === cartItemId)
-    if (item) {
-      item.quantity = quantity
-    }
   }
 }
 
@@ -247,22 +189,25 @@ const submitOrder = async () => {
       payment_method: orderForm.payment_method
     }
     
-    // 模拟订单提交，实际项目应调用checkoutCart
-    ElMessage.success('订单提交成功，即将跳转支付页面')
-    isCheckoutDialogVisible.value = false
-    
-    // 模拟支付成功后清空已选商品
-    setTimeout(() => {
-      selectedItems.value.forEach(id => {
-        cartItems.value = cartItems.value.filter(item => item.cartItemId !== id)
-      })
-      selectedItems.value = []
-      updateSelectAllStatus()
-    }, 2000)
+    const res = await checkoutCart(params)
+    if (res.data.code == 200) {
+      ElMessage.success('订单提交成功，即将跳转支付页面')
+      isCheckoutDialogVisible.value = false
+      
+      // 结算成功后刷新购物车数据
+      await fetchCartItems()
+    } else {
+      ElMessage.error(res.data.msg || '提交订单失败')
+    }
   } catch (error) {
     console.error('提交订单出错:', error)
     ElMessage.error('网络错误，请稍后重试')
   }
+}
+
+// 图片加载错误处理
+const handleImageError = (event) => {
+  event.target.src = '/placeholder.jpg'
 }
 
 // 页面加载时获取购物车数据
@@ -328,7 +273,7 @@ onMounted(() => {
                   <img 
                     :src="item.cover" 
                     :alt="item.title"
-                    @error="e => { const target = e.target as HTMLImageElement; if (target) target.src = 'https://shadow.elemecdn.com/app/element/hamburger.9cf7b091-55e9-11e9-a976-7f4d0b07eef6.png'; }"
+                    @error="handleImageError"
                   >
                 </div>
                 <div class="item-details">
@@ -471,7 +416,6 @@ onMounted(() => {
     </el-dialog>
   </div>
 </template>
-
 <style scoped>
 .cart-container {
   padding: 2rem;

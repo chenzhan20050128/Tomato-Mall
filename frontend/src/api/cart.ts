@@ -1,13 +1,13 @@
 import { axios } from '../utils/request'
 
-// 购物车商品类型定义
+// 修改购物车项目接口，与Product保持一致
 export interface CartItem {
   cartItemId: string;
   productId: string;
-  title: string;
+  title: string;            // 使用title，而非name
   price: number;
   description: string;
-  cover?: string;
+  cover: string;            // 使用cover，而非image
   detail?: string;
   quantity: number;
 }

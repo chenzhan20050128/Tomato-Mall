@@ -14,21 +14,16 @@ function hasToken() {
     return token !== null && token !== ''
 }
 
-//判断是否登录 - 设置用户ID
-function hasUserId() {
-    const userId = sessionStorage.getItem('userId')
-    return userId !== null && userId !== ''
-}
-
 // 请求拦截器 - 在发送请求前添加token
 service.interceptors.request.use(
     config => {
         if (hasToken()) {
             config.headers['token'] = sessionStorage.getItem('token')
+            return config
         }
-        if (hasUserId()) {
-            config.headers['userId'] = sessionStorage.getItem('userId')
-        }
+        // if (hasUserId()) {
+        //     config.headers['userId'] = sessionStorage.getItem('userId')
+        // }
         return config
     },
     error => {

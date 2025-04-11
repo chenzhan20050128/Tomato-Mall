@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/tomatomall?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+  security:
+    bcrypt:
+      enabled: true
+
+jwt:
+  secret: "tomato-mall"
+  # JWT 过期时间，单位毫秒
+  expiration: 864000000
+alipay:
+  appId: 2021000147671450
+  appPrivateKey: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCXCUGWL2qIyWU7Kx7v1Gz69nohqmh1rWlr2pIyIMFEtAX8Nkuw9HxeuAFQqF2ua6K8pLqUk/mLnkUaRSO3me8K5QvDkxS9H7sytBhttLafKxbxoWX3zKR6OE6qTxjUWUQyCHDiAiTi7xgbVSN2YFVkMA+rkafjdTI7KH40f1O7MpdDblSx0C0MGEFTssmGSiBvunP7YzJeZQMyIGKLEPvVevJEBow9G4XIqmuIpr54PlKnm6/F1r9nwBvTmiHkYGfytakUWMsOhaY3nDdNFjs0CGRNvivzbSBN2S+hBmc8BEHrhIRfrG9RKIv/AuFb6ZSXGNxzdWakrzGwiAEkdtt1AgMBAAECggEBAIksjPbcRcPKNjjQ5x4nLnuYVEAzRwBp6S9dqh4BBcdiQXVZ0tD6m+Ji+D7LS5pYg8sVSagb5S9bJaPAW7orAqJAeLi94r4KDbj1PKKW2K4jMolubu/qWw/uB/RCNmjWUkumwu9hxyKcyKY6YyTmRWfjBrhqZ7L8BA0ar9T6N4/x6TU9Hde9Kqhl50X0kCQvvaUrxHwkGYiWEO2orAePVfmyW5W+UTSW6ZQ0DRYxnbjW9Tcmhv0DIcztfz7k70Kvas7Qh5xAlZTT4SwgEUnD37X4P7BKzKTR75nbXR29esZ47lxRazv3pAN9cbgVFgww5ZTEkU7fJvlW7y1oTHvgTkECgYEA+kTzUJnDyM+6PrZrNcvecCfaI+SO8841HEuv34xWatMO5xAqQdoWcDylIgBhLQklSDelxLPbvRdcS0i+d1th6hesrqF5IpHYpQbIK3HE+RWiRaai2eoRnDF0EtIKFbk1c+nmqWPhLsn0VGNo7f+JOFHOwFGMNswir6Tqz1TXR90CgYEAmn6cynUxkSx+j6JHKewNzMz1SSFzKkkjMMP5OySHMISXs4gvWsuVZZmEwK8qlZzOIH33Lp9lA898RNrn/fC/MVUbYDj7d/vQShvTaYyE9Sz/Fo5baK2kVm1lAU/u/e1IbnOTNU5GAC5tLqEnmwOk5qreRJ2AHaadjf3sEMVBNHkCgYBP075obyNr4hZd+oGn3ydMTundmQGf8p4uMFYgz/qgiEGwog9Ygd+2XSGu/sAARXKG3nkZjOUCI3lk6gcWuyc4K+UArrCcvjiEKu2eLePOL4BbBxPavjZvw7ZqamSdGT5bgrf4P8uLyQ8N+8d0YpW6SR3RajF3KRXHQKtFBqLEYQKBgQCGhK2yXp5dADfmim6aIu3VH7SHC3gCHpJkeI5+n4ySgzCvYmmRDeg0AZqkRyC2CkUz51odHy5ORg+2yD/tTPy8UJU4kATs8LXogRfwNCjkbVxiYGtY1rBbjH7AyL+YG03Q1hMb+95ZdBMe4bThdSfUrHxBlD2kE5nls20jIQ1oSQKBgH4TIJRC3lJVFbzuLjV4hjaO19WL1XfGmsIzJHvkT1Jlm45M7G/skNeH8XVEEq5oeIJ49RJska7igpnHkjscOiFKo8uCrTCoxKyTYQvOduAiUeDaN5+ZVSTDCR/bu+JTxIiRafFmEbgi2XsSqwpVxTVX0brkLylClOOBXybHOL9u
+  alipayPublicKey: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl33UntFqkA6FSz8TMzYfggCvJyKqnzD10d/lCY49+tg4Vhqnvq8xHYAVym6Lcy+j5HxzX0p2G8QeuCheIN2D/Uiw1Q1b8Dv9rz86by7+u+d7ofqJX5LV1qEHc1aVAM+/psNvGe4+nSQ1Xj/rgieWqV2IQa0QIE43YyqtrJYOoXi14/pLSC6UAsP0KK7XvAmC71nyNSxzcSW8z6inVluv/7v/cITpmtlQHGNj3+K2+cnQ5BKU+mg64Ulchij2ZH/ZHIazGt8UKPk9TAMU2ZClJ883Fci9Df+ebYISd+f2Q9sUXK1vyWf6wBnxm3xwRjVyKpc+guVF1rSab5pivM/7UQIDAQAB
+  notifyUrl: http://dncu2p.natappfree.cc/api/orders/notify
+  serverUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  returnUrl: http://dncu2p.natappfree.cc/api/orders/return
+
