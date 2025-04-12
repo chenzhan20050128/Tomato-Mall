@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.data.redis.RedisConnectionFailureException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

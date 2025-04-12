@@ -13,7 +13,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 
+import java.util.concurrent.TimeUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -30,15 +35,17 @@ public class AdvertisementServiceImpl implements AdvertisementService {
     @Autowired
     private ProductRepository productRepository;
 
+
     @Autowired
     @Qualifier("advertisementRedisTemplate") // 指定Bean名称
     private RedisTemplate<String, AdvertisementDTO> redisTemplate;
     private static final String CACHE_KEY = "advertisements";
 
     @Override
-    @Cacheable(cacheNames = "advertisements", key = "'all_ads'",sync = true)
+    @Cacheable(cacheNames = "advertisements", key = "'all_ads'", sync = true) //先从本地Caffeine缓存获取数据 30秒过期
     public List<AdvertisementDTO> getAllAdvertisements() {
-        // 从缓存获取数据
+
+        // 从缓存获取数据 1小时过期
         List<AdvertisementDTO> cached = redisTemplate.opsForList().range(CACHE_KEY, 0, -1);
         if (cached != null && !cached.isEmpty()) {
             log.info("从Redis缓存中获取广告数据 数据个数:{}", cached.size());
@@ -52,6 +59,7 @@ public class AdvertisementServiceImpl implements AdvertisementService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         log.info("从数据库中获取广告数据 数据个数:{}", dtos.size());
+
         // 写入缓存
         if (!dtos.isEmpty()) {
             redisTemplate.opsForList().rightPushAll(CACHE_KEY, dtos);

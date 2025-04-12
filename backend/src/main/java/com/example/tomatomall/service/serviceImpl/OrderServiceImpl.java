@@ -38,6 +38,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
+import java.util.concurrent.TimeUnit;
+
+
 @Service
 @Slf4j
 public class OrderServiceImpl implements OrderService {
@@ -78,11 +84,10 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    //删除可重入锁 引入Redisson modified by cz on 4.11 16:49
 
+    //删除可重入锁 引入Redisson modified by cz on 4.11 16:49
     @Autowired
     private RedissonClient redissonClient;
-
 
     @Override
     @Transactional
@@ -159,11 +164,11 @@ public class OrderServiceImpl implements OrderService {
             // 获取分布式锁（每个商品独立锁）
             RLock lock = redissonClient.getLock("lock:stock:" + productId);
             try {
+                lock.lock();
                 // 尝试加锁，最多等待3秒，锁超时30秒自动释放
                 if (!lock.tryLock(3, 30, TimeUnit.SECONDS)) {
                     throw new RuntimeException("系统繁忙，请稍后再试");
                 }
-
                 Stockpile stockpile = productService.getStock(productId);
                 if (stockpile.getAmount() < cartItem.getQuantity()) {
                     throw new RuntimeException("商品库存不足: " + product.getTitle());
