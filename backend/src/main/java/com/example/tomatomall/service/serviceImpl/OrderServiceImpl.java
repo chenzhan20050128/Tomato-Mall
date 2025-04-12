@@ -35,6 +35,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
+import java.util.concurrent.TimeUnit;
+
+
 @Service
 @Slf4j
 public class OrderServiceImpl implements OrderService {
@@ -75,9 +81,10 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    private final ConcurrentHashMap<Integer, ReentrantLock> productLocks = new ConcurrentHashMap<>();
 
-    //使用可重入锁 added by cz on 4.9 at 19:47
+    //删除可重入锁 引入Redisson modified by cz on 4.11 16:49
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Override
     @Transactional
@@ -151,12 +158,14 @@ public class OrderServiceImpl implements OrderService {
             Product product = productMap.get(cartItem.getProductId());
             Integer productId = cartItem.getProductId();
 
-            // 获取或创建该商品的锁
-            ReentrantLock lock = productLocks.computeIfAbsent(productId, k -> new ReentrantLock());
-
+            // 获取分布式锁（每个商品独立锁）
+            RLock lock = redissonClient.getLock("lock:stock:" + productId);
             try {
                 lock.lock();
-
+                // 尝试加锁，最多等待3秒，锁超时30秒自动释放
+                if (!lock.tryLock(3, 30, TimeUnit.SECONDS)) {
+                    throw new RuntimeException("系统繁忙，请稍后再试");
+                }
                 Stockpile stockpile = productService.getStock(productId);
 
                 if (stockpile.getAmount() < cartItem.getQuantity()) {
@@ -167,8 +176,13 @@ public class OrderServiceImpl implements OrderService {
                 stockpile.setLockedAmount(stockpile.getLockedAmount() + cartItem.getQuantity());
 
                 stockpileService.updateStockpile(stockpile);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("锁定库存时发生中断异常");
             } finally {
-                lock.unlock();
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
             }
 
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));

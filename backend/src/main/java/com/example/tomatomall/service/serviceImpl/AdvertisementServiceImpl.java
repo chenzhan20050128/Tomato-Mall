@@ -9,7 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 
+import java.util.concurrent.TimeUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -25,18 +30,42 @@ public class AdvertisementServiceImpl implements AdvertisementService {
     @Autowired
     private ProductRepository productRepository;
 
-    @Override
-    public List<AdvertisementDTO> getAllAdvertisements() {
-        List<Advertisement> advertisements = advertisementRepository.findAll();
-        advertisements.sort(Comparator.comparing(Advertisement::getId).reversed());
 
-        return advertisements.stream()
+    @Autowired
+    @Qualifier("advertisementRedisTemplate") // 指定Bean名称
+    private RedisTemplate<String, AdvertisementDTO> redisTemplate;
+    private static final String CACHE_KEY = "advertisements";
+
+    @Override
+    @Cacheable(cacheNames = "advertisements", key = "'all_ads'", sync = true) //先从本地Caffeine缓存获取数据 30秒过期
+    public List<AdvertisementDTO> getAllAdvertisements() {
+
+        // 从缓存获取数据 1小时过期
+        List<AdvertisementDTO> cached = redisTemplate.opsForList().range(CACHE_KEY, 0, -1);
+        if (cached != null && !cached.isEmpty()) {
+            log.info("从Redis缓存中获取广告数据 数据个数:{}", cached.size());
+            return cached;
+        }
+
+        // 缓存未命中则查询数据库
+        List<Advertisement> ads = advertisementRepository.findAll();
+        List<AdvertisementDTO> dtos = ads.stream()
+                .sorted(Comparator.comparing(Advertisement::getId).reversed())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        log.info("从数据库中获取广告数据 数据个数:{}", dtos.size());
+
+        // 写入缓存
+        if (!dtos.isEmpty()) {
+            redisTemplate.opsForList().rightPushAll(CACHE_KEY, dtos);
+            redisTemplate.expire(CACHE_KEY, 1, TimeUnit.HOURS);
+        }
+        return dtos;
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "advertisements",key = "'all_ads'", allEntries = true)
     public AdvertisementDTO updateAdvertisement(AdvertisementDTO advertisementDTO) {
         // 验证商品存在
         Integer productId = Integer.parseInt(advertisementDTO.getProductId());
@@ -67,12 +96,14 @@ public class AdvertisementServiceImpl implements AdvertisementService {
         existingAd.setProductId(productId);
 
         Advertisement updatedAd = advertisementRepository.save(existingAd);
+        redisTemplate.delete(CACHE_KEY);
         log.info("广告更新成功，ID: {}", updatedAd.getId());
         return convertToDTO(updatedAd);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "advertisements",key = "'all_ads'", allEntries = true)
     public AdvertisementDTO createAdvertisement(AdvertisementDTO advertisementDTO) {
         // 验证商品存在
         Integer productId = Integer.parseInt(advertisementDTO.getProductId());
@@ -88,12 +119,14 @@ public class AdvertisementServiceImpl implements AdvertisementService {
         advertisement.setProductId(productId);
 
         Advertisement savedAd = advertisementRepository.save(advertisement);
+        redisTemplate.delete(CACHE_KEY);
         log.info("广告创建成功，ID: {}", savedAd.getId());
         return convertToDTO(savedAd);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "advertisements",key = "'all_ads'", allEntries = true)
     public void deleteAdvertisement(Integer id) {
         advertisementRepository.deleteById(id);
         log.info("广告删除成功，ID: {}", id);

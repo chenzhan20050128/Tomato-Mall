@@ -1,3 +1,5 @@
+USE tomatomall;
+
 -- 删除已存在的表（注意删除顺序，先删除有外键引用的表）
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS carts;
