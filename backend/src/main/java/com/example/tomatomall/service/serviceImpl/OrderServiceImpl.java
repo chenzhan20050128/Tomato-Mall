@@ -16,8 +16,6 @@ import com.example.tomatomall.service.ProductService;
 import com.example.tomatomall.service.StockpileService;
 import com.example.tomatomall.vo.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -33,7 +31,6 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -170,13 +167,14 @@ public class OrderServiceImpl implements OrderService {
                     throw new RuntimeException("系统繁忙，请稍后再试");
                 }
                 Stockpile stockpile = productService.getStock(productId);
+
                 if (stockpile.getAmount() < cartItem.getQuantity()) {
                     throw new RuntimeException("商品库存不足: " + product.getTitle());
                 }
 
-                // 扣减库存
                 stockpile.setAmount(stockpile.getAmount() - cartItem.getQuantity());
                 stockpile.setLockedAmount(stockpile.getLockedAmount() + cartItem.getQuantity());
+
                 stockpileService.updateStockpile(stockpile);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

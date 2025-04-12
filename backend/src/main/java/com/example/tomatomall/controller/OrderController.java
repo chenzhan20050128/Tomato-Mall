@@ -3,11 +3,15 @@ package com.example.tomatomall.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.alipay.easysdk.factory.Factory;
 import com.example.tomatomall.config.AliPayConfig;
+import com.example.tomatomall.dto.PaymentNotifyDTO;
 import com.example.tomatomall.po.AliPay;
 import com.example.tomatomall.po.Order;
 import com.example.tomatomall.service.OrderService;
 import com.example.tomatomall.vo.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,7 @@ import com.alipay.api.request.AlipayTradePagePayRequest;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,6 +48,9 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @PostMapping("/{orderId}/pay")
     public void pay(@PathVariable Integer orderId, HttpServletResponse httpResponse) throws Exception {
@@ -72,6 +80,7 @@ public class OrderController {
         bizContent.put("subject", "Tomato Mall Order #" + orderId);   // 支付的名称
         bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");  // 固定配置
         request.setBizContent(bizContent.toString());
+        log.info(bizContent.toString());
 
         String form = alipayClient.pageExecute(request).getBody();
 
@@ -92,60 +101,43 @@ public class OrderController {
         Map<String, String> params = new HashMap<>();
         request.getParameterMap().forEach((k, v) -> params.put(k, v[0]));
         log.info("接收到回调参数: {}", params);
+        log.info("开始进行签名验证");
+        boolean verifyResult = Factory.Payment.Common().verifyNotify(params);
+        log.info("签名验证结果: {}", verifyResult);
 
-        try {
-            // 1. 签名验证
-            log.info("开始进行签名验证");
-            boolean verifyResult = Factory.Payment.Common().verifyNotify(params);
-            log.info("签名验证结果: {}", verifyResult);
-
-            if (!verifyResult) {
-                log.info("签名验证失败，返回fail");
-                response.getWriter().print("fail");
-                return;
-            }
-
-            // 2. 状态校验
-            String tradeStatus = params.get("trade_status");
-            log.info("交易状态: {}", tradeStatus);
-
-            if (!"TRADE_SUCCESS".equals(tradeStatus) && !"TRADE_FINISHED".equals(tradeStatus)) {
-                log.info("交易状态不是成功或完成状态，直接返回success");
-                response.getWriter().print("success");
-                return;
-            }
-
-            // 3. 业务处理
-            String orderId = params.get("out_trade_no");
-            log.info("获取到订单ID: {}", orderId);
-
-            Order order = orderService.getOrderById(Integer.parseInt(orderId));
-            log.info("查询到订单信息: {}", order);
-
-            // 幂等性检查（防止重复处理）
-            log.info("开始幂等性检查，当前订单状态: {}", order.getStatus());
-            if ("SUCCESS".equals(order.getStatus())) {
-                log.info("订单已处理过，直接返回success");
-                response.getWriter().print("success");
-                return;
-            }
-
-            // 4. 处理支付结果
-            log.info("开始处理支付结果");
-            boolean success = orderService.processPaymentCallback(params);
-            log.info("支付结果处理完成，处理结果: {}", success);
-
-            String responseText = success ? "success" : "fail";
-            log.info("返回结果: {}", responseText);
-            response.getWriter().print(responseText);
-        } catch (Exception e) {
-            log.error("支付回调处理异常: {}", e.getMessage(), e);
-            response.setStatus(500);
+        if (!verifyResult) {
+            log.info("签名验证失败，返回fail");
             response.getWriter().print("fail");
-            log.error("支付回调处理失败", e);
-        } finally {
-            log.info("支付宝支付回调处理结束");
+            return;
         }
+
+        String tradeStatus = params.get("trade_status");
+        log.info("交易状态: {}", tradeStatus);
+
+        if (!"TRADE_SUCCESS".equals(tradeStatus) && !"TRADE_FINISHED".equals(tradeStatus)) {
+            log.info("交易状态不是成功或完成状态，直接返回success");
+            response.getWriter().print("success");
+            return;
+        }
+
+        // 使用类型安全的传输对象代替原始Map modified by cz on 4.11 at 10:35
+        PaymentNotifyDTO notifyDTO = new PaymentNotifyDTO();
+        notifyDTO.setOutTradeNo(params.get("out_trade_no"));
+        notifyDTO.setTradeNo(params.get("trade_no"));
+        notifyDTO.setTotalAmount(new BigDecimal(params.get("total_amount")));
+        Message message = rabbitTemplate.getMessageConverter().toMessage(
+                notifyDTO,
+                new MessageProperties()
+        );
+
+        rabbitTemplate.send(
+                "payment.exchange",
+                "payment.process",
+                message
+        );
+        log.info("rabbitmq发送消息成功convertAndSend params（实际上是PaymentNotifyDTO）: {}", params);
+
+        response.getWriter().print("success");
     }
 
     @GetMapping("/{orderId}/status")
