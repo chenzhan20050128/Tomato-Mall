@@ -1,6 +1,7 @@
 package com.example.tomatomall.controller;
 
 import com.example.tomatomall.vo.Response;
+import org.redisson.client.RedisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -27,5 +28,12 @@ public class GlobalExceptionHandler {
     public Response<String> handleRedisConnectionException(RedisConnectionFailureException e) {
         logger.error("Redis连接异常: {}", e.getMessage());
         return Response.buildFailure("系统暂时不可用，请稍后重试", "503");
+    }
+
+    @ExceptionHandler(RedisException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Response<String> handleRedisException(RedisException e) {
+        logger.error("Redis操作异常: {}", e.getMessage());
+        return Response.buildFailure("系统缓存服务暂时不可用，请稍后重试", "500");
     }
 }

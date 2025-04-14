@@ -313,3 +313,6 @@ CREATE TABLE advertisements (
                                 image_url VARCHAR(500) NOT NULL COMMENT '广告图片url',
                                 product_id INT NOT NULL COMMENT '所属商品id，不允许为空'
 ) COMMENT='广告表';
+
+-- id主键索引已存在，需检查product_id是否建索引
+CREATE INDEX idx_product_id ON advertisements (product_id);

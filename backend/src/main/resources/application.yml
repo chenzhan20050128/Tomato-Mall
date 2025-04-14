@@ -11,7 +11,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    show-sql: true
+    show-sql: false
   security:
     bcrypt:
       enabled: true
@@ -44,6 +44,9 @@ spring:
     password:
     database: 0
     timeout: 3000
+    product:
+      ttl: 1800 # 30分钟基础时间
+      null-ttl: 300 # 5分钟空值缓存
 
 # 自定义队列配置
 mq-config:
@@ -62,3 +65,5 @@ alipay:
   notifyUrl: http://qmz26e.natappfree.cc/api/orders/notify
   serverUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
   returnUrl: http://www.baidu.com
+server:
+  port: 8080

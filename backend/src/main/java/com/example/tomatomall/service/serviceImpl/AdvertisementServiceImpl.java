@@ -6,7 +6,9 @@ import com.example.tomatomall.dto.AdvertisementDTO;
 import com.example.tomatomall.po.Advertisement;
 import com.example.tomatomall.service.AdvertisementService;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,10 +16,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +31,7 @@ public class AdvertisementServiceImpl implements AdvertisementService {
     private ProductRepository productRepository;
 
 
+
     @Autowired
     @Qualifier("advertisementRedisTemplate") // 指定Bean名称
     private RedisTemplate<String, AdvertisementDTO> redisTemplate;
@@ -41,9 +42,11 @@ public class AdvertisementServiceImpl implements AdvertisementService {
     public List<AdvertisementDTO> getAllAdvertisements() {
 
         // 从缓存获取数据 1小时过期
+        long start = System.currentTimeMillis();
         List<AdvertisementDTO> cached = redisTemplate.opsForList().range(CACHE_KEY, 0, -1);
         if (cached != null && !cached.isEmpty()) {
-            log.info("从Redis缓存中获取广告数据 数据个数:{}", cached.size());
+            log.info("Redis查询耗时: {}ms", System.currentTimeMillis() - start);
+            //log.info("从Redis缓存中获取广告数据 数据个数:{}", cached.size());
             return cached;
         }
 
@@ -58,8 +61,11 @@ public class AdvertisementServiceImpl implements AdvertisementService {
         // 写入缓存
         if (!dtos.isEmpty()) {
             redisTemplate.opsForList().rightPushAll(CACHE_KEY, dtos);
-            redisTemplate.expire(CACHE_KEY, 1, TimeUnit.HOURS);
+            // 修改Redis过期时间为 1小时 ± 随机10分钟 at 1.14 19:00
+            long expireTime = 60 + (long) (Math.random() * 10);
+            redisTemplate.expire(CACHE_KEY, expireTime, TimeUnit.MINUTES);
         }
+
         return dtos;
     }
 
@@ -97,7 +103,7 @@ public class AdvertisementServiceImpl implements AdvertisementService {
 
         Advertisement updatedAd = advertisementRepository.save(existingAd);
         redisTemplate.delete(CACHE_KEY);
-        log.info("广告更新成功，ID: {}", updatedAd.getId());
+        //log.info("广告更新成功，ID: {}", updatedAd.getId());
         return convertToDTO(updatedAd);
     }
 
@@ -120,7 +126,7 @@ public class AdvertisementServiceImpl implements AdvertisementService {
 
         Advertisement savedAd = advertisementRepository.save(advertisement);
         redisTemplate.delete(CACHE_KEY);
-        log.info("广告创建成功，ID: {}", savedAd.getId());
+        //log.info("广告创建成功，ID: {}", savedAd.getId());
         return convertToDTO(savedAd);
     }
 
@@ -129,7 +135,7 @@ public class AdvertisementServiceImpl implements AdvertisementService {
     @CacheEvict(cacheNames = "advertisements",key = "'all_ads'", allEntries = true)
     public void deleteAdvertisement(Integer id) {
         advertisementRepository.deleteById(id);
-        log.info("广告删除成功，ID: {}", id);
+        //log.info("广告删除成功，ID: {}", id);
     }
 
     private AdvertisementDTO convertToDTO(Advertisement advertisement) {
