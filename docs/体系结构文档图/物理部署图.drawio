@@ -1,0 +1,47 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0" version="26.2.13">
+  <diagram name="第 1 页" id="5ucsYwj3SnN44tPSwUXi">
+    <mxGraphModel dx="1396" dy="626" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-13" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0;exitDx=270;exitDy=105;exitPerimeter=0;fontSize=12;startSize=8;endSize=8;" edge="1" parent="1" source="8Ng2_gHRUkk_NrEnLLzG-1" target="8Ng2_gHRUkk_NrEnLLzG-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-1" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;{OS = Windows11}&lt;/div&gt;&lt;div&gt;{JDK = JDK8}&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=14;" vertex="1" parent="1">
+          <mxGeometry x="-90" y="166" width="270" height="196" as="geometry" />
+        </mxCell>
+        <UserObject label="Client" treeRoot="1" id="8Ng2_gHRUkk_NrEnLLzG-3">
+          <mxCell style="whiteSpace=wrap;html=1;align=center;treeFolding=1;treeMoving=1;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;startArrow&quot;:&quot;none&quot;,&quot;endArrow&quot;:&quot;none&quot;};" vertex="1" parent="1">
+            <mxGeometry x="-18" y="271" width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-4" value="" style="shape=module;align=left;spacingLeft=20;align=center;verticalAlign=top;whiteSpace=wrap;html=1;jettyWidth=12;jettyHeight=5;" vertex="1" parent="1">
+          <mxGeometry x="59" y="277" width="37" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-5" value="ClientNode" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-73" y="187" width="73" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-6" value="&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=14;" vertex="1" parent="1">
+          <mxGeometry x="546" y="166" width="270" height="196" as="geometry" />
+        </mxCell>
+        <UserObject label="Server" treeRoot="1" id="8Ng2_gHRUkk_NrEnLLzG-7">
+          <mxCell style="whiteSpace=wrap;html=1;align=center;treeFolding=1;treeMoving=1;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;startArrow&quot;:&quot;none&quot;,&quot;endArrow&quot;:&quot;none&quot;};" vertex="1" parent="1">
+            <mxGeometry x="618" y="271" width="120" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-8" value="" style="shape=module;align=left;spacingLeft=20;align=center;verticalAlign=top;whiteSpace=wrap;html=1;jettyWidth=12;jettyHeight=5;" vertex="1" parent="1">
+          <mxGeometry x="695" y="277" width="37" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-9" value="ClientNode" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="563" y="187" width="73" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-14" value="client.jar" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="270" y="31" width="181" height="71" as="geometry" />
+        </mxCell>
+        <mxCell id="8Ng2_gHRUkk_NrEnLLzG-15" value="server.jar" style="html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="270" y="137" width="181" height="71" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

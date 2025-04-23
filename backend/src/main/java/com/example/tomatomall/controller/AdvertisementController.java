@@ -19,8 +19,13 @@ public class AdvertisementController {
 
     @GetMapping
     public Response<List<AdvertisementDTO>> getAllAdvertisements() {
-        List<AdvertisementDTO> advertisements = advertisementService.getAllAdvertisements();
-        return Response.buildSuccess(advertisements);
+        try {
+            List<AdvertisementDTO> ads = advertisementService.getAllAdvertisements();
+            return Response.buildSuccess(ads);
+        } catch (Exception e) {
+            log.error("获取广告失败: {}", e.getMessage());
+            return Response.buildFailure("太多请求啦 服务暂时不可用", "500");
+        }
     }
 
     @PutMapping
@@ -36,9 +41,9 @@ public class AdvertisementController {
     @PostMapping
     public Response<AdvertisementDTO> createAdvertisement(@RequestBody AdvertisementDTO advertisementDTO) {
         try {
-            log.info("Creating advertisement: {}", advertisementDTO);
+            //log.info("Creating advertisement: {}", advertisementDTO);
             AdvertisementDTO createdAd = advertisementService.createAdvertisement(advertisementDTO);
-            log.info("Created advertisement: {}", createdAd.toString());
+            //log.info("Created advertisement: {}", createdAd.toString());
             return Response.buildSuccess(createdAd);
         } catch (RuntimeException e) {
             log.info("Create advertisement failed: {}", e.getMessage());
