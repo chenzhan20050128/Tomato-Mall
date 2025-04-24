@@ -23,8 +23,3 @@
 hs_err_pid*
 replay_pid*
 
-#个人配置文件
-backend/src/main/java/com/example/tomatomall/config/RabbitMQConfig.java
-backend/src/main/resources/application.yml
-.gitignore
-.idea/
