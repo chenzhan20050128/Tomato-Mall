@@ -16,7 +16,7 @@ spring:
     bcrypt:
       enabled: true
   rabbitmq:
-    host: 192.168.56.10
+    host: 127.0.0.1
     port: 5672
     username: guest
     password: guest
@@ -39,7 +39,7 @@ spring:
           - java.lang
           - com.example.tomatomall.dto
   redis:
-    host: 192.168.56.10
+    host: 127.0.0.1
     port: 6379
     password:
     database: 0

@@ -221,7 +221,7 @@ public Queue orderDelayQueue() {
     @Bean
     public CachingConnectionFactory connectionFactory() {
         CachingConnectionFactory factory = new CachingConnectionFactory();
-        factory.setHost("192.168.56.10");
+        factory.setHost("127.0.0.1");
         factory.setChannelCacheSize(25); // 增加通道缓存
         factory.setChannelCheckoutTimeout(1000); // 设置获取通道超时时间
         return factory;
