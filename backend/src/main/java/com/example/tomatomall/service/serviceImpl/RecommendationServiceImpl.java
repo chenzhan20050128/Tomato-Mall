@@ -1,0 +1,163 @@
+// 修改后的RecommendationServiceImpl
+package com.example.tomatomall.service.serviceImpl;
+
+import com.example.tomatomall.dao.ProductRepository;
+import com.example.tomatomall.dao.RatingRepository;
+import com.example.tomatomall.dto.ProductRankingDTO;
+import com.example.tomatomall.po.Product;
+import com.example.tomatomall.service.RecommendationService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+@Slf4j
+public class RecommendationServiceImpl implements RecommendationService {
+
+    private final ProductRepository productRepo;
+    private final RatingRepository ratingRepo;
+
+    public RecommendationServiceImpl(ProductRepository productRepo,
+            RatingRepository ratingRepo) {
+        this.productRepo = productRepo;
+        this.ratingRepo = ratingRepo;
+    }
+
+    // 修正畅销榜实现
+    @Cacheable(value = "bestSellers", key = "#category + '-' + #days")
+    public List<ProductRankingDTO> getBestSellers(String category, int days, int limit) {
+        Date startDate = Date.from(LocalDate.now().minusDays(days).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        // 1. 获取销量数据
+        List<Object[]> salesData = productRepo.findBestSellingProducts(
+                startDate, limit, category);
+
+        // 2. 提取商品ID
+        List<Integer> productIds = salesData.stream()
+                .map(data -> (Integer) data[0])
+                .collect(Collectors.toList());
+
+        // 3. 获取完整商品信息
+        Map<Integer, Product> products = productRepo.findAllById(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        // 4. 构建DTO列表
+        return salesData.stream()
+                .map(data -> {
+                    Integer productId = (Integer) data[0];
+                    Long totalSales = (Long) data[1];
+                    Product product = products.get(productId);
+
+                    return ProductRankingDTO.builder()
+                            .productId(productId)
+                            .title(product.getTitle())
+                            .cover(product.getCover())
+                            .price(product.getPrice().doubleValue())
+                            .sales(totalSales.intValue())
+                            .category(getProductCategory(productId))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    // 修正评分榜实现
+    @Cacheable(value = "topRated", key = "#category")
+    public List<ProductRankingDTO> getTopRated(String category, int limit) {
+        // 1. 获取评分数据
+        List<Object[]> ratingData = ratingRepo.findTopRatedProducts(limit, category);
+
+        // 2. 提取商品ID
+        List<Integer> productIds = ratingData.stream()
+                .map(data -> (Integer) data[0])
+                .collect(Collectors.toList());
+
+        // 3. 获取完整商品信息
+        Map<Integer, Product> products = productRepo.findAllById(productIds)
+                .stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+
+        // 4. 构建DTO列表
+        return ratingData.stream()
+                .map(data -> {
+                    Integer productId = (Integer) data[0];
+                    Double avgScore = (Double) data[1];
+                    Long ratingCount = (Long) data[2];
+                    Product product = products.get(productId);
+
+                    return ProductRankingDTO.builder()
+                            .productId(productId)
+                            .title(product.getTitle())
+                            .cover(product.getCover())
+                            .price(product.getPrice().doubleValue())
+                            .averageScore(avgScore)
+                            .ratingCount(ratingCount.intValue())
+                            .category(getProductCategory(productId))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    // 修正随机推荐实现
+    public List<ProductRankingDTO> getRandomRecommendations(int count, List<String> preferredCategories) {
+        List<Product> products;
+
+        if (preferredCategories != null && !preferredCategories.isEmpty()) {
+            // 带分类的随机推荐
+            Pageable pageable = PageRequest.of(0, count * 2); // 获取更多结果用于随机选择
+            products = productRepo.findByCategoryIn(preferredCategories, pageable);
+
+            if (products.size() >= count) {
+                Collections.shuffle(products);
+                products = products.subList(0, count);
+            } else {
+                // 补充随机商品
+                int remain = count - products.size();
+                List<Product> randomProducts = productRepo.findRandomAvailableProducts(remain);
+                products.addAll(randomProducts);
+            }
+        } else {
+            // 完全随机推荐
+            products = productRepo.findRandomAvailableProducts(count);
+        }
+
+        return products.stream()
+                .map(product -> ProductRankingDTO.builder()
+                        .productId(product.getId())
+                        .title(product.getTitle())
+                        .cover(product.getCover())
+                        .price(product.getPrice().doubleValue())
+                        .category(getProductCategory(product.getId()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // 辅助方法：获取商品分类
+    private String getProductCategory(Integer productId) {
+        // 实现分类查询逻辑（需要根据实际数据模型调整）
+        return productRepo.findCategoryByProductId(productId);
+    }
+
+    // 新增 - 获取用户偏好分类
+    @Override
+    public List<String> getUserPreferredCategories(Integer userId) {
+        if (userId == null) {
+            return Collections.emptyList();
+        }
+
+        // 从用户历史订单中获取偏好分类
+        List<String> orderBasedCategories = productRepo.findCategoriesByUserOrderHistory(userId);
+
+        return orderBasedCategories;
+    }
+
+}
