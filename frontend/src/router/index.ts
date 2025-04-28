@@ -12,6 +12,7 @@ const Mall = () => import('../views/mall/Mall.vue')
 const Detail = () => import('../views/product/ProductDetail.vue')
 const Cart = () => import('../views/cart/Cart.vue')
 const Order = () => import('../views/order/Order.vue')
+const Pay = () => import('../views/payment/PaymentResult.vue')
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -93,6 +94,13 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true
         }
       },
+      // 在router配置文件中添加路由
+      {
+        path: '/payment-result',
+        name: 'PaymentResult',
+        component: Pay,
+        meta: { requiresAuth: true }
+      }
     ]
   },
   // 捕获所有未匹配路由

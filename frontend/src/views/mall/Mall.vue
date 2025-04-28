@@ -6,6 +6,7 @@ import { Search, ShoppingCart } from '@element-plus/icons-vue'
 import { getProductList, searchProducts, Product } from '../../api/mall'
 import { addToCart } from '../../api/cart'
 import { navigateWithTransition } from '../../utils/transition'
+import emitter from '../../utils/eventBus'
 
 // 广告数据
 const advertisements = ref([
@@ -208,6 +209,9 @@ const handleAddToCart = async (product: Product, event: Event) => {
     const res = await addToCart(product.id, 1)
     if (res.data.code == 200) {
       ElMessage.success(`已将《${product.title}》加入购物车`)
+      
+      // 触发更新购物车数量的事件
+      emitter.emit('updateCartCount')
     } else {
       ElMessage.error('添加购物车失败')
     }

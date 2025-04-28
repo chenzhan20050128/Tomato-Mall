@@ -23,6 +23,37 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
+        String path = request.getRequestURI();
+        // 添加payment-success到白名单
+        if (path.contains("/payment-success") || 
+        path.matches("/api/orders/notify")   // 其他白名单路径...
+        ) 
+            return true; // 直接放行，不进行身份验证
+        
+        // 扩展排除规则
+        if (request.getRequestURI().matches("/api/orders/\\d+/pay") || 
+            request.getRequestURI().matches("/api/orders/\\d+/check-payment")) {
+            log.info("支付或检查支付相关路径，允许通过: {}", request.getRequestURI());
+
+                        // 尝试从请求中获取token
+                        String token = extractToken(request);
+                        if (token != null) {
+                            try {
+                                // 从token中提取userId并设置
+                                Integer userId = extractUserIdFromToken(token);
+                                if (userId != null) {
+                                    request.setAttribute("userId", userId);
+                                    log.info("为支付请求设置用户ID: {}", userId);
+                                }
+                            } catch (Exception e) {
+                                log.warn("解析支付请求token失败，继续处理: {}", e.getMessage());
+                            }
+                        }
+                        
+                        // 无论token是否有效都放行
+            return true;
+        }
+        
         // 放行OPTIONS请求
         if ("OPTIONS".equals(request.getMethod())) {
             return true;
@@ -64,5 +95,32 @@ public class JwtInterceptor implements HandlerInterceptor {
         response.setContentType("application/json;charset=UTF-8");
         ObjectMapper mapper = new ObjectMapper();
         response.getWriter().write(mapper.writeValueAsString(Response.buildFailure("未授权", "401")));
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        // 从Authorization头获取
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        
+        // 尝试从请求参数获取
+        String token = request.getParameter("token");
+        if (token != null && !token.isEmpty()) {
+            return token;
+        }
+        
+        return null;
+    }
+
+    private Integer extractUserIdFromToken(String token) {
+        // 实现从token获取userId的逻辑
+        // 使用您现有的JwtTokenUtil或其他方式
+        try {
+            return jwtUtil.getUserIdFromToken(token);
+        } catch (Exception e) {
+            log.error("从token中提取userId失败: {}", e.getMessage());
+            return null;
+        }
     }
 }

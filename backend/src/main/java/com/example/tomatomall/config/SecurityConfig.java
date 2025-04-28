@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -31,7 +32,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
+                .antMatchers("/api/orders/*/pay").permitAll()  // 支付相关端点允许公开访问
                 .antMatchers("/**").permitAll()  // 所有请求交由JwtInterceptor处理
+                // 添加payment-success为公开访问
+                .antMatchers("/api/orders/payment-success").permitAll()
+                .antMatchers("/api/orders/notify").permitAll()
                 .and()
                 .formLogin().disable()
                 .httpBasic().disable();

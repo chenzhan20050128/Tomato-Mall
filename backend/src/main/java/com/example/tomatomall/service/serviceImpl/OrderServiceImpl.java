@@ -7,6 +7,7 @@ import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.easysdk.factory.Factory;
+import com.alipay.easysdk.payment.common.models.AlipayTradeQueryResponse;
 import com.example.tomatomall.config.AliPayConfig;
 import com.example.tomatomall.dao.*;
 import com.example.tomatomall.dto.PaymentNotifyDTO;
@@ -39,6 +40,11 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 
 import java.util.concurrent.TimeUnit;
+
+// 在import语句区域添加
+import com.alibaba.fastjson.JSONObject;
+// 在其他import语句旁边添加
+import com.example.tomatomall.service.CartService;
 
 
 @Service
@@ -86,6 +92,10 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private RedissonClient redissonClient;
 
+    @Resource
+    private CartService cartService;
+
+
     @Override
     @Transactional
     /*
@@ -105,6 +115,21 @@ public class OrderServiceImpl implements OrderService {
         Order order = createOrderEntity(userId, paymentMethod, totalAmount);
         saveCartOrderRelations(validCartItems, order);
         sendDelayOrderMessage(order);
+
+        log.info("订单创建成功: {}", order.getOrderId());
+        // 创建订单后删除购物车中的商品 - 使用原始的 cartItemIds 参数
+        if (cartItemIds != null && !cartItemIds.isEmpty()) {
+            cartItemIds.forEach(cartItemId -> {
+                try {
+                    cartService.removeCartItem(cartItemId);
+                    log.info("已从购物车移除商品: {}", cartItemId);
+                } catch (Exception e) {
+                    log.error("从购物车移除商品失败: {}", cartItemId, e);
+                    // 不抛出异常，以免影响订单创建的事务
+                }
+            });
+        }
+
         return order;
     }
 
@@ -374,4 +399,107 @@ public class OrderServiceImpl implements OrderService {
 
 
 
+
+    /**
+     * 取消订单
+     * 只能取消PENDING状态的订单
+     */
+    @Override
+    @Transactional
+    public Order cancelOrder(Integer orderId, Integer userId) throws Exception {
+        Order order = getOrderById(orderId);
+        
+        // 验证用户权限
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("无权操作此订单");
+        }
+        
+        // 验证订单状态
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new RuntimeException("只能取消待支付的订单");
+        }
+        
+        // 恢复库存
+        List<CartOrderRelation> relations = cartOrderRelationRepository.findByOrderId(orderId);
+        relations.forEach(relation -> {
+            CartItem cartItem = cartRepository.findById(relation.getCartItemId()).orElse(null);
+            if (cartItem != null) {
+                Stockpile stockpile = productService.getStock(cartItem.getProductId());
+                synchronized (this) {
+                    stockpile.setAmount(stockpile.getAmount() + cartItem.getQuantity());
+                    stockpile.setLockedAmount(stockpile.getLockedAmount() - cartItem.getQuantity());
+                    stockpileService.updateStockpile(stockpile);
+                }
+            }
+        });
+        
+        // 更新订单状态
+        order.setStatus("CANCELLED");
+        return orderRepository.save(order);
+    }
+
+    /**
+     * 确认收货
+     * 只能确认已发货状态(SHIPPED)的订单
+     */
+    @Override
+    @Transactional
+    public Order confirmReceipt(Integer orderId, Integer userId) throws Exception {
+        Order order = getOrderById(orderId);
+        
+        // 验证用户权限
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("无权操作此订单");
+        }
+        
+        // 验证订单状态
+        if (!"SHIPPED".equals(order.getStatus()) && !"DELIVERED".equals(order.getStatus())) {
+            throw new RuntimeException("只能确认已发货的订单");
+        }
+        
+        // 更新订单状态
+        order.setStatus("COMPLETED");
+        return orderRepository.save(order);
+    }
+
+   
+    @Override
+    public boolean checkPaymentStatusWithAlipay(Integer orderId) throws Exception {
+        try {
+            Order order = getOrderById(orderId);
+            if (order == null) {
+                log.warn("订单不存在，无法查询支付状态：{}", orderId);
+                return false;
+            }
+            
+            // 现在类型匹配了
+            AlipayTradeQueryResponse response = Factory.Payment.Common().query(order.getOrderId().toString());
+            
+            // 判断查询结果
+            if ("10000".equals(response.code)) {
+                String tradeStatus = response.tradeStatus;
+                log.info("订单{}的支付宝状态: {}", orderId, tradeStatus);
+                
+                // 如果交易状态是成功或结束，返回true
+                return "TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus);
+            } else {
+                log.warn("查询支付宝订单状态失败: {}, {}", response.getSubCode(), response.getSubMsg());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("查询支付状态异常", e);
+            throw e;
+        }
+    }
+
+    @Override
+    public Order updateOrder(Order order) {
+        if (order == null || order.getOrderId() == null) {
+            log.error("更新订单时，订单对象或ID为空");
+            throw new IllegalArgumentException("订单对象或ID不能为空");
+        }
+        
+        // 保存更新后的订单
+        return orderRepository.save(order);
+    }
 }

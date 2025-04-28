@@ -25,4 +25,22 @@ public interface OrderService {
 
     List<Order> findExpiredOrders();
 
+    // 新增方法
+    Order cancelOrder(Integer orderId, Integer userId) throws Exception;
+    Order confirmReceipt(Integer orderId, Integer userId) throws Exception;
+
+    
+    /**
+     * 通过支付宝API检查订单支付状态
+     * @param orderId 订单ID
+     * @return 是否已支付
+     */
+    boolean checkPaymentStatusWithAlipay(Integer orderId) throws Exception;
+    
+    /**
+     * 更新订单信息
+     * @param order 要更新的订单对象
+     * @return 更新后的订单
+     */
+    Order updateOrder(Order order);
 }

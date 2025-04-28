@@ -173,8 +173,9 @@ const openCheckoutDialog = () => {
   isCheckoutDialogVisible.value = true
 }
 
-// 提交订单
+// 修改提交订单函数
 const submitOrder = async () => {
+  // 验证表单（保持不变）
   if (!orderForm.shipping_address.name) {
     ElMessage.warning('请输入收货人姓名')
     return
@@ -197,13 +198,20 @@ const submitOrder = async () => {
     
     const res = await checkoutCart(params)
     if (res.data.code == 200) {
-      ElMessage.success('订单提交成功，即将跳转支付页面')
       isCheckoutDialogVisible.value = false
       
       // 结算成功后刷新购物车数据
       await fetchCartItems()
       // 通知其他组件更新购物车数量
       emitter.emit('updateCartCount')
+      
+      // 显示成功消息并跳转到订单界面
+      ElMessage.success('订单创建成功，正在跳转到订单页面')
+      
+      // 延迟一下再跳转，让用户能看到成功消息
+      setTimeout(() => {
+        router.replace('/order')
+      }, 1000)
     } else {
       ElMessage.error(res.data.msg || '提交订单失败')
     }
