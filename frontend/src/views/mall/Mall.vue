@@ -288,8 +288,7 @@ onMounted(() => {
               <img 
                 :src="item.image" 
                 :alt="item.title" 
-                @error="(e) => e.target.style.display = 'none'"
-              />
+                @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"              />
             </div>
           </div>
         </el-carousel-item>

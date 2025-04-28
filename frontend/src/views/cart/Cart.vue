@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Minus, Plus, ShoppingCart, Warning, ShoppingBag } from '@element-plus/icons-vue'
 import { getCartItems, removeFromCart, updateCartItemQuantity, checkoutCart, CartItem } from '../../api/cart'
+// 导入事件总线
+import emitter from '../../utils/eventBus'
 
 const router = useRouter()
 const loading = ref(true)
@@ -92,6 +94,8 @@ const handleRemoveItem = async (cartItemId: string) => {
         // 更新选中状态
         selectedItems.value = selectedItems.value.filter(id => id !== cartItemId)
         updateSelectAllStatus()
+        // 通知其他组件更新购物车数量
+        emitter.emit('updateCartCount')
       } else {
         ElMessage.error(res.data.msg || '移除商品失败')
       }
@@ -116,6 +120,8 @@ const updateQuantity = async (cartItemId: string, quantity: number) => {
       const item = cartItems.value.find(item => item.cartItemId === cartItemId)
       if (item) {
         item.quantity = quantity
+        // 通知其他组件更新购物车数量
+        emitter.emit('updateCartCount')
       }
     } else {
       ElMessage.error(res.data.msg || '更新数量失败')
@@ -196,6 +202,8 @@ const submitOrder = async () => {
       
       // 结算成功后刷新购物车数据
       await fetchCartItems()
+      // 通知其他组件更新购物车数量
+      emitter.emit('updateCartCount')
     } else {
       ElMessage.error(res.data.msg || '提交订单失败')
     }

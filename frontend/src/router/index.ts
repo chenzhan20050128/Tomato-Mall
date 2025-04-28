@@ -11,6 +11,7 @@ const Home = () => import('../views/home/Home.vue')
 const Mall = () => import('../views/mall/Mall.vue')
 const Detail = () => import('../views/product/ProductDetail.vue')
 const Cart = () => import('../views/cart/Cart.vue')
+const Order = () => import('../views/order/Order.vue')
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -80,6 +81,15 @@ const routes: Array<RouteRecordRaw> = [
         component: Cart,
         meta: {
           title: '购物车',
+          requiresAuth: true
+        }
+      },
+      {
+        path: '/order',
+        name: 'Order',
+        component: Order,
+        meta: {
+          title: '我的订单',
           requiresAuth: true
         }
       },
