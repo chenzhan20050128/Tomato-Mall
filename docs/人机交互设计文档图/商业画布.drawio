@@ -1,0 +1,109 @@
+<mxfile host="65bd71144e">
+    <diagram id="business-model-canvas" name="商业画布">
+        <mxGraphModel dx="1050" dy="675" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                
+                <!-- 标题 -->
+                <mxCell id="canvas_title" value="番茄商城商业画布" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1" vertex="1" parent="1">
+                    <mxGeometry x="389.5" y="30" width="390" height="30" as="geometry"/>
+                </mxCell>
+                
+                <!-- 关键合作伙伴 KP -->
+                <mxCell id="block_kp" value="关键合作伙伴 (KP)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="90" width="180" height="260" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_kp" value="• 各大出版社&#xa;&#xa;• 物流配送公司&#xa;&#xa;• 支付平台&#xa;&#xa;• 高校机构合作&#xa;&#xa;• 内容创作者和书评人" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="50" y="130" width="160" height="200" as="geometry"/>
+                </mxCell>
+                
+                <!-- 关键业务活动 KA -->
+                <mxCell id="block_ka" value="关键业务活动 (KA)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="90" width="180" height="260" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_ka" value="• 平台开发和维护&#xa;&#xa;• 内容运营和推荐系统优化&#xa;&#xa;• 供应链管理&#xa;&#xa;• 用户社群运营&#xa;&#xa;• 数据分析和营销活动" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="250" y="130" width="160" height="200" as="geometry"/>
+                </mxCell>
+                
+                <!-- 价值主张 VP -->
+                <mxCell id="block_vp" value="价值主张 (VP)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="440" y="90" width="290" height="260" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_vp" value="• 一站式购书体验&#xa;  (推荐-选择-购买-评论)&#xa;&#xa;• 精准的个性化推荐&#xa;&#xa;• 优质电子书与实体书结合&#xa;&#xa;• 特色收藏品质保证&#xa;&#xa;• 为出版社提供数字化销售渠道&#xa;  和数据分析&#xa;&#xa;• 学生专属服务与优惠" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="450" y="130" width="270" height="200" as="geometry"/>
+                </mxCell>
+                
+                <!-- 客户关系 CR -->
+                <mxCell id="block_cr" value="客户关系 (CR)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="750" y="90" width="180" height="260" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_cr" value="• 个性化推荐和关怀&#xa;&#xa;• 在线客服和售后支持&#xa;&#xa;• 会员积分和忠诚度计划&#xa;&#xa;• 读书社群和互动&#xa;&#xa;• 高校读者社交圈" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="760" y="130" width="160" height="200" as="geometry"/>
+                </mxCell>
+                
+                <!-- 客户细分 CS -->
+                <mxCell id="block_cs" value="客户细分 (CS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="950" y="90" width="180" height="260" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_cs" value="• 都市白领读者&#xa;  (核心用户)&#xa;&#xa;• 高校学生用户&#xa;&#xa;• 书籍收藏家&#xa;  (垂直用户)&#xa;&#xa;• 出版社客户&#xa;  (B端用户)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="960" y="130" width="160" height="200" as="geometry"/>
+                </mxCell>
+                
+                <!-- 关键资源 KR -->
+                <mxCell id="block_kr" value="关键资源 (KR)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="370" width="180" height="200" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_kr" value="• 电商平台技术系统&#xa;&#xa;• 图书库存和供应链&#xa;&#xa;• 用户数据和偏好分析&#xa;&#xa;• 专业运营团队&#xa;&#xa;• 内容策划与编辑资源" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="50" y="410" width="160" height="150" as="geometry"/>
+                </mxCell>
+                
+                <!-- 渠道通路 CH -->
+                <mxCell id="block_ch" value="渠道通路 (CH)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b0e3e6;strokeColor=#0e8088;align=center;verticalAlign=top;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+                    <mxGeometry x="750" y="370" width="180" height="200" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_ch" value="• 移动应用(iOS/Android)&#xa;&#xa;• PC网站&#xa;&#xa;• 社交媒体营销&#xa;&#xa;• 线下高校合作推广&#xa;&#xa;• 内容创作者合作" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="760" y="410" width="160" height="150" as="geometry"/>
+                </mxCell>
+                
+                <!-- 成本结构 CS -->
+                <mxCell id="block_cost" value="成本结构 (CS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="590" width="330" height="170" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_cost" value="• 平台开发和维护成本&#xa;&#xa;• 营销和推广费用&#xa;&#xa;• 库存和物流成本&#xa;&#xa;• 人员薪资&#xa;&#xa;• 内容版权采购" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="250" y="630" width="310" height="120" as="geometry"/>
+                </mxCell>
+                
+                <!-- 收入来源 RS -->
+                <mxCell id="block_rs" value="收入来源 (RS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+                    <mxGeometry x="599.5" y="590" width="330" height="170" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="content_rs" value="• 图书销售收入&#xa;&#xa;• 会员订阅费&#xa;&#xa;• 广告推广费&#xa;&#xa;• 出版社平台使用费&#xa;&#xa;• 增值服务收费(保真鉴定、限量版预订等)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="609.5" y="630" width="310" height="120" as="geometry"/>
+                </mxCell>
+                
+                <!-- 中央区域 -->
+                <mxCell id="block_central" value="商业模式核心" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=top;fontStyle=1;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+                    <mxGeometry x="240" y="370" width="490" height="200" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="central_title" value="商业模式核心" style="text;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+                    <mxGeometry x="435" y="400" width="100" height="30" as="geometry"/>
+                </mxCell>
+                
+                <mxCell id="central_content" value="番茄商城致力于打造阅读+电商的生态闭环，&#xa;通过精准满足各类读者的购书需求，&#xa;同时为出版社提供数字化销售渠道和数据洞察，&#xa;实现读者、平台与出版方的共赢。" style="text;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;" vertex="1" parent="1">
+                    <mxGeometry x="280" y="430" width="410" height="120" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

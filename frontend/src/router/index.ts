@@ -88,7 +88,12 @@ const routes: Array<RouteRecordRaw> = [
   // 捕获所有未匹配路由
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    name: 'NotFound',
+    component: () => import('../views/Default.vue'),
+    meta: {
+      title: '页面未找到',
+      requiresAuth: false
+    }
   }
 ]
 
