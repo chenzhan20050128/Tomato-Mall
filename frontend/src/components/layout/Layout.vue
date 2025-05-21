@@ -2,6 +2,7 @@
 import Header from './Header.vue'
 import { useViewport } from '../../composables/useViewport'
 import { provide } from 'vue'
+import ChatBot from './ChatBox.vue' 
 
 const viewport = useViewport()
 provide('viewport', viewport)
@@ -11,6 +12,7 @@ provide('viewport', viewport)
   <el-container direction="vertical" class="layout-container">
     <Header />
     <router-view />
+    <ChatBot /> <!-- 添加聊天组件 -->
   </el-container>
 </template>
 
