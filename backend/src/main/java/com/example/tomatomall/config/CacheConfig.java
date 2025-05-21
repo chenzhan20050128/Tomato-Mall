@@ -32,7 +32,13 @@ public class CacheConfig {
     public CacheManager cacheManager(Caffeine<Object, Object> caffeine) {
         CaffeineCacheManager manager = new CaffeineCacheManager();
         manager.setCaffeine(caffeine);
-        manager.setCacheNames(Arrays.asList("advertisements", "other_cache"));
+        manager.setCacheNames(Arrays.asList(
+            "advertisements", 
+            "bestSellers", 
+            "topRated", 
+            "userPreferences", 
+            "other_cache"
+        ));
         return manager;
     }
 
