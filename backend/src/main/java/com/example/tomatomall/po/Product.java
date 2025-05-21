@@ -30,4 +30,24 @@ public class Product {
     @JsonManagedReference
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Specification> specifications;
+
+        public String toRagText() {
+        return String.format("""
+            Product ID: %d
+            Title: %s
+            Category: %s
+            Description: %s
+            Price: %.2f
+            """,
+                id, title, getCategory(), description, price.doubleValue());
+    }
+
+    // 从规格中提取分类（示例逻辑）
+    private String getCategory() {
+        return specifications.stream()
+                .filter(s -> "category".equalsIgnoreCase(s.getItem()))
+                .findFirst()
+                .map(Specification::getValue)
+                .orElse("General");
+    }
 }

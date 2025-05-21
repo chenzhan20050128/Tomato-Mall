@@ -51,23 +51,33 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .stream()
                 .collect(Collectors.toMap(Product::getId, p -> p));
 
-        // 4. 构建DTO列表
-        return salesData.stream()
-                .map(data -> {
-                    Integer productId = (Integer) data[0];
-                    Long totalSales = (Long) data[1];
-                    Product product = products.get(productId);
+       // 4. 构建DTO列表
+    return salesData.stream()
+            .map(data -> {
+                Integer productId = ((Number) data[0]).intValue();
+                
+                // 修改这里：使用Number类型安全地获取销量
+                int totalSales = (data[1] == null) ? 0 : ((Number) data[1]).intValue();
+                
+                Product product = products.get(productId);
+                
+                // 添加空值检查
+                if (product == null) {
+                    log.warn("未找到ID为{}的商品", productId);
+                    return null;
+                }
 
-                    return ProductRankingDTO.builder()
-                            .productId(productId)
-                            .title(product.getTitle())
-                            .cover(product.getCover())
-                            .price(product.getPrice().doubleValue())
-                            .sales(totalSales.intValue())
-                            .category(getProductCategory(productId))
-                            .build();
-                })
-                .collect(Collectors.toList());
+                return ProductRankingDTO.builder()
+                        .productId(productId)
+                        .title(product.getTitle())
+                        .cover(product.getCover())
+                        .price(product.getPrice().doubleValue())
+                        .sales(totalSales)
+                        .category(getProductCategory(productId))
+                        .build();
+            })
+            .filter(Objects::nonNull) // 过滤掉null值
+            .collect(Collectors.toList());
     }
 
     // 修正评分榜实现

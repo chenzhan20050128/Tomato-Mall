@@ -53,6 +53,9 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     private OrderRepository orderRepository;
 
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
     @Resource
     private CartItemRepository cartRepository;
 
@@ -113,6 +116,11 @@ public class OrderServiceImpl implements OrderService {
 
         // 3. 创建订单并保存关联
         Order order = createOrderEntity(userId, paymentMethod, totalAmount);
+        
+        
+        // 新增: 保存订单项记录
+        saveOrderItems(validCartItems, order, productMap);
+        
         saveCartOrderRelations(validCartItems, order);
         sendDelayOrderMessage(order);
 
@@ -501,5 +509,25 @@ public class OrderServiceImpl implements OrderService {
         
         // 保存更新后的订单
         return orderRepository.save(order);
+    }
+
+    // 将这个方法添加到createOrder方法中相应位置
+    private void saveOrderItems(List<CartItem> cartItems, Order order, Map<Integer, Product> productMap) {
+        List<OrderItem> orderItems = new ArrayList<>(cartItems.size());
+        
+        for (CartItem cartItem : cartItems) {
+            Product product = productMap.get(cartItem.getProductId());
+            
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setPrice(product.getPrice());
+            
+            orderItems.add(orderItem);
+        }
+        
+        orderItemRepository.saveAll(orderItems);
+        log.info("保存订单项: {} 条记录", orderItems.size());
     }
 }
