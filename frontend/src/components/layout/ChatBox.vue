@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { ChatDotRound, Close, ArrowUp } from '@element-plus/icons-vue'
+import emitter from '../../utils/eventBus'
 
 // 定义消息类型
 interface ChatMessage {
@@ -24,6 +25,36 @@ const chatVisible = ref(false)
 const messages = ref<ChatMessage[]>(mockMessages)
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
+
+const isLoggedIn = ref(false)
+const username = ref('')
+
+// 关键修改：添加全局定时器检查登录状态
+let loginCheckInterval: number | null = null
+
+// 检查登录状态
+const checkLoginStatus = () => {
+  const prevLoginState = isLoggedIn.value
+  
+  // 同时检查localStorage和sessionStorage
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const storedUsername = localStorage.getItem('username') || sessionStorage.getItem('username')
+  
+  // 更新登录状态和用户名
+  isLoggedIn.value = !!token
+  username.value = storedUsername || ''
+  
+  // 登录状态变化时进行额外处理
+  if (prevLoginState !== isLoggedIn.value) {
+    console.log('登录状态发生变化:', isLoggedIn.value ? '已登录' : '未登录')
+    
+    if (!isLoggedIn.value) {
+      // 登出时自动关闭聊天窗口
+      chatVisible.value = false
+      messages.value = [...mockMessages]
+    }
+  }
+}
 
 // 滚动到最新消息
 const scrollToBottom = () => {
@@ -96,6 +127,20 @@ const sendMessage = async () => {
   scrollToBottom()
 }
 
+// 处理登录/登出事件
+const handleLoginEvent = (type: 'login' | 'logout') => {
+  console.log(`收到${type === 'login' ? '登录' : '登出'}事件`)
+  
+  // 立即检查登录状态
+  checkLoginStatus()
+  
+  // 如果是登出事件，关闭聊天窗口
+  if (type === 'logout' || !isLoggedIn.value) {
+    chatVisible.value = false
+  }
+}
+
+
 // 切换聊天窗口显示状态
 const toggleChat = () => {
   chatVisible.value = !chatVisible.value
@@ -105,12 +150,50 @@ const toggleChat = () => {
 }
 
 onMounted(() => {
+  console.log('ChatBox组件已挂载')
+  
+  // 初始化时检查登录状态
+  checkLoginStatus()
+  
+  // 设置定时器，每500ms检查一次登录状态（确保实时响应）
+  loginCheckInterval = setInterval(checkLoginStatus, 500)
+  
+  // 仍然保留事件监听
+  emitter.on('login', () => {
+    console.log('收到login事件，立即检查登录状态')
+    checkLoginStatus()
+  })
+  
+  emitter.on('logout', () => {
+    console.log('收到logout事件，立即检查登录状态')
+    handleLoginEvent('logout')
+  })
+  
   scrollToBottom()
 })
+
+// 清理定时器和事件监听
+onUnmounted(() => {
+  console.log('清理定时器和事件监听')
+  if (loginCheckInterval) {
+    clearInterval(loginCheckInterval)
+  }
+  emitter.off('login')
+  emitter.off('logout')
+})
+
+// 移除多余的watch（保留一个即可）
+watch([
+  () => localStorage.getItem('token'), 
+  () => sessionStorage.getItem('token')
+], () => {
+  console.log('存储状态变化，立即检查登录状态')
+  checkLoginStatus()
+}, { immediate: true })
 </script>
 
 <template>
-  <div class="chat-container">
+  <div class="chat-container" v-if="isLoggedIn">
     <!-- 悬浮按钮 -->
     <div 
       class="chat-button" 
