@@ -2,13 +2,18 @@
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { ChatDotRound, Close, ArrowUp } from '@element-plus/icons-vue'
 import emitter from '../../utils/eventBus'
+import MarkdownIt from 'markdown-it'
+import { useRouter } from 'vue-router'
 
-// 定义消息类型
+// 创建Markdown渲染器
+const md = new MarkdownIt()
+// 修改消息类型定义
 interface ChatMessage {
   id: number
   content: string
   role: 'user' | 'assistant'
   timestamp: Date
+  loading?: boolean  // 新增加载状态属性
 }
 
 // 模拟的对话数据
@@ -20,7 +25,9 @@ const mockMessages: ChatMessage[] = [
     timestamp: new Date()
   }
 ]
-
+// 添加loading状态变量
+const isLoading = ref(false)
+// 聊天窗口的显示状态
 const chatVisible = ref(false)
 const messages = ref<ChatMessage[]>(mockMessages)
 const inputMessage = ref('')
@@ -30,24 +37,24 @@ const isLoggedIn = ref(false)
 const username = ref('')
 
 // 关键修改：添加全局定时器检查登录状态
-let loginCheckInterval: number | null = null
+let loginCheckInterval: ReturnType<typeof setInterval> | null = null
 
 // 检查登录状态
 const checkLoginStatus = () => {
   const prevLoginState = isLoggedIn.value
-  
+
   // 同时检查localStorage和sessionStorage
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   const storedUsername = localStorage.getItem('username') || sessionStorage.getItem('username')
-  
+
   // 更新登录状态和用户名
   isLoggedIn.value = !!token
   username.value = storedUsername || ''
-  
+
   // 登录状态变化时进行额外处理
   if (prevLoginState !== isLoggedIn.value) {
     console.log('登录状态发生变化:', isLoggedIn.value ? '已登录' : '未登录')
-    
+
     if (!isLoggedIn.value) {
       // 登出时自动关闭聊天窗口
       chatVisible.value = false
@@ -64,11 +71,10 @@ const scrollToBottom = () => {
     }, 50)
   }
 }
-
-// 发送消息到后端
+// 修改发送消息函数
 const sendMessage = async () => {
   if (!inputMessage.value.trim()) return
-  
+
   // 添加用户消息
   messages.value.push({
     id: Date.now(),
@@ -76,18 +82,30 @@ const sendMessage = async () => {
     role: 'user',
     timestamp: new Date()
   })
-  
+
   const userQuestion = inputMessage.value
   inputMessage.value = ''
   scrollToBottom()
-  
+
+  // 添加一个带有加载状态的临时消息
+  const loadingMessageId = Date.now() + 1
+  messages.value.push({
+    id: loadingMessageId,
+    content: "思考中...",
+    role: 'assistant',
+    timestamp: new Date(),
+    loading: true
+  })
+
+  isLoading.value = true
+
   try {
     // 获取token (从localStorage或sessionStorage)
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
     if (!token) {
       throw new Error('用户未登录')
     }
-    
+
     // 调用后端API
     const response = await fetch('http://localhost:8080/api/recommend', {
       method: 'POST',
@@ -97,9 +115,12 @@ const sendMessage = async () => {
       },
       body: JSON.stringify({ query: userQuestion })
     })
-    
+
     const responseData = await response.json()
-    
+
+    // 移除加载消息
+    messages.value = messages.value.filter(msg => msg.id !== loadingMessageId)
+
     // 检查响应状态
     if (responseData.code === '200') {
       // 添加AI回复
@@ -109,12 +130,24 @@ const sendMessage = async () => {
         role: 'assistant',
         timestamp: new Date()
       })
+
+      // 检查是否包含支付宝沙箱链接并自动跳转
+      const alipayLink = checkForAlipayLink(responseData.data)
+      if (alipayLink) {
+        console.log('检测到支付宝沙箱链接:', alipayLink)
+        setTimeout(() => {
+          openLinkInNewWindow(alipayLink)
+        }, 500) // 延迟500ms跳转，让用户先看到消息
+      }
     } else {
       throw new Error(responseData.message || '请求失败')
     }
   } catch (error) {
     console.error('AI回复请求失败:', error)
-    
+
+    // 移除加载消息
+    messages.value = messages.value.filter(msg => msg.id !== loadingMessageId)
+
     // 添加错误消息
     messages.value.push({
       id: Date.now(),
@@ -122,18 +155,19 @@ const sendMessage = async () => {
       role: 'assistant',
       timestamp: new Date()
     })
+  } finally {
+    isLoading.value = false
   }
-  
+
   scrollToBottom()
 }
-
 // 处理登录/登出事件
 const handleLoginEvent = (type: 'login' | 'logout') => {
   console.log(`收到${type === 'login' ? '登录' : '登出'}事件`)
-  
+
   // 立即检查登录状态
   checkLoginStatus()
-  
+
   // 如果是登出事件，关闭聊天窗口
   if (type === 'logout' || !isLoggedIn.value) {
     chatVisible.value = false
@@ -148,27 +182,49 @@ const toggleChat = () => {
     scrollToBottom()
   }
 }
+// 改进后的支付宝链接提取函数
+const checkForAlipayLink = (content: string): string | null => {
+  // 尝试查找格式化文本中的链接 - 通常在两个换行符之间
+  const formattedRegex = /这是支付宝支付页面的链接：\s*\n(https:\/\/openapi-sandbox\.dl\.alipaydev\.com\/[^\s\n]+)/i;
+  const formattedMatch = content.match(formattedRegex);
+  if (formattedMatch && formattedMatch[1]) {
+    return formattedMatch[1];
+  }
+  
+  // 备用方案：查找任何支付宝沙箱链接
+  const generalRegex = /(https:\/\/openapi-sandbox\.dl\.alipaydev\.com\/[^\s"'<>]+)/g;
+  const matches = content.match(generalRegex);
+  return matches ? matches[0] : null;
+}
+// 在新标签页打开链接
+const openLinkInNewWindow = (url: string): void => {
+  if (url) {
+    console.log('打开链接:', url)
+    // 使用_blank确保在新标签页打开
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
 
 onMounted(() => {
   console.log('ChatBox组件已挂载')
-  
+
   // 初始化时检查登录状态
   checkLoginStatus()
-  
+
   // 设置定时器，每500ms检查一次登录状态（确保实时响应）
   loginCheckInterval = setInterval(checkLoginStatus, 500)
-  
+
   // 仍然保留事件监听
   emitter.on('login', () => {
     console.log('收到login事件，立即检查登录状态')
     checkLoginStatus()
   })
-  
+
   emitter.on('logout', () => {
     console.log('收到logout事件，立即检查登录状态')
     handleLoginEvent('logout')
   })
-  
+
   scrollToBottom()
 })
 
@@ -184,7 +240,7 @@ onUnmounted(() => {
 
 // 移除多余的watch（保留一个即可）
 watch([
-  () => localStorage.getItem('token'), 
+  () => localStorage.getItem('token'),
   () => sessionStorage.getItem('token')
 ], () => {
   console.log('存储状态变化，立即检查登录状态')
@@ -195,51 +251,46 @@ watch([
 <template>
   <div class="chat-container" v-if="isLoggedIn">
     <!-- 悬浮按钮 -->
-    <div 
-      class="chat-button" 
-      @click="toggleChat"
-      :class="{ 'active': chatVisible }"
-    >
+    <div class="chat-button" @click="toggleChat" :class="{ 'active': chatVisible }">
       <el-icon :size="24" class="icon">
         <component :is="chatVisible ? Close : ChatDotRound" />
       </el-icon>
     </div>
-    
+
     <!-- 对话窗口 -->
     <div class="chat-window" :class="{ 'visible': chatVisible }">
       <div class="chat-header">
         <h3>番茄书城AI助手</h3>
       </div>
-      
+
       <div class="chat-messages" ref="messagesContainer">
-        <div 
-          v-for="message in messages" 
-          :key="message.id" 
-          :class="['message', message.role]"
-        >
-          <div class="message-content">{{ message.content }}</div>
+        <!-- 在template部分替换消息渲染的代码 -->
+        <div v-for="message in messages" :key="message.id" :class="['message', message.role]">
+          <div v-if="message.loading" class="message-loading">
+            <el-icon class="loading-icon">
+              <Loading />
+            </el-icon>
+            <span>思考中...</span>
+          </div>
+          <template v-else>
+            <div v-if="message.role === 'assistant'" class="message-content" v-html="md.render(message.content)"></div>
+            <div v-else class="message-content">{{ message.content }}</div>
+          </template>
           <div class="message-time">
             {{ message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
           </div>
         </div>
       </div>
-      
+
       <div class="chat-input">
-        <el-input
-          v-model="inputMessage"
-          placeholder="请输入您的问题..."
-          :rows="2"
-          type="textarea"
-          resize="none"
-          @keyup.enter.prevent="sendMessage"
-        />
-        <el-button 
-          type="primary" 
-          class="send-button" 
-          @click="sendMessage"
-          :disabled="!inputMessage.trim()"
-        >
-          <el-icon><ArrowUp /></el-icon>
+        <el-input v-model="inputMessage" placeholder="请输入您的问题..." :rows="2" type="textarea" resize="none"
+          @keyup.enter.prevent="sendMessage" />
+        <!-- 替换发送按钮代码 -->
+        <el-button type="primary" class="send-button" @click="sendMessage" :disabled="!inputMessage.trim()"
+          :loading="isLoading">
+          <el-icon>
+            <ArrowUp />
+          </el-icon>
         </el-button>
       </div>
     </div>
@@ -381,6 +432,69 @@ watch([
 .send-button:hover {
   background-color: #c0392b;
   border-color: #c0392b;
+}
+
+/* 加载动画 */
+.message-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Markdown 渲染样式 */
+.message-content :deep(p) {
+  margin: 0.5em 0;
+}
+
+.message-content :deep(code) {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-family: monospace;
+}
+
+.message-content :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+  padding: 0.8em;
+  overflow-x: auto;
+}
+
+.message-content :deep(a) {
+  color: #e74c3c;
+  text-decoration: none;
+}
+
+.message-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.message-content :deep(ul),
+.message-content :deep(ol) {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.message-content :deep(blockquote) {
+  border-left: 4px solid #e74c3c;
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: #666;
 }
 
 /* 移动端适配 */
