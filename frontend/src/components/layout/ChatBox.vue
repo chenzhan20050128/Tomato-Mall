@@ -3,6 +3,7 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { ChatDotRound, Close, ArrowUp } from '@element-plus/icons-vue'
 import emitter from '../../utils/eventBus'
 import MarkdownIt from 'markdown-it'
+import { useRouter } from 'vue-router'
 
 // 创建Markdown渲染器
 const md = new MarkdownIt()
@@ -36,7 +37,7 @@ const isLoggedIn = ref(false)
 const username = ref('')
 
 // 关键修改：添加全局定时器检查登录状态
-let loginCheckInterval: number | null = null
+let loginCheckInterval: ReturnType<typeof setInterval> | null = null
 
 // 检查登录状态
 const checkLoginStatus = () => {
@@ -129,6 +130,15 @@ const sendMessage = async () => {
         role: 'assistant',
         timestamp: new Date()
       })
+
+      // 检查是否包含支付宝沙箱链接并自动跳转
+      const alipayLink = checkForAlipayLink(responseData.data)
+      if (alipayLink) {
+        console.log('检测到支付宝沙箱链接:', alipayLink)
+        setTimeout(() => {
+          openLinkInNewWindow(alipayLink)
+        }, 500) // 延迟500ms跳转，让用户先看到消息
+      }
     } else {
       throw new Error(responseData.message || '请求失败')
     }
@@ -170,6 +180,28 @@ const toggleChat = () => {
   chatVisible.value = !chatVisible.value
   if (chatVisible.value) {
     scrollToBottom()
+  }
+}
+// 改进后的支付宝链接提取函数
+const checkForAlipayLink = (content: string): string | null => {
+  // 尝试查找格式化文本中的链接 - 通常在两个换行符之间
+  const formattedRegex = /这是支付宝支付页面的链接：\s*\n(https:\/\/openapi-sandbox\.dl\.alipaydev\.com\/[^\s\n]+)/i;
+  const formattedMatch = content.match(formattedRegex);
+  if (formattedMatch && formattedMatch[1]) {
+    return formattedMatch[1];
+  }
+  
+  // 备用方案：查找任何支付宝沙箱链接
+  const generalRegex = /(https:\/\/openapi-sandbox\.dl\.alipaydev\.com\/[^\s"'<>]+)/g;
+  const matches = content.match(generalRegex);
+  return matches ? matches[0] : null;
+}
+// 在新标签页打开链接
+const openLinkInNewWindow = (url: string): void => {
+  if (url) {
+    console.log('打开链接:', url)
+    // 使用_blank确保在新标签页打开
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
 
