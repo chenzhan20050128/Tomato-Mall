@@ -6,7 +6,8 @@ DROP TABLE IF EXISTS carts;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS stockpiles;
 DROP TABLE IF EXISTS specifications;
-
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS comment_replies;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS carts_orders_relation;
 DROP TABLE IF EXISTS advertisements;
@@ -314,5 +315,84 @@ CREATE TABLE advertisements (
                                 product_id INT NOT NULL COMMENT '所属商品id，不允许为空'
 ) COMMENT='广告表';
 
+-- 评论主表
+CREATE TABLE comments (
+                          id INT PRIMARY KEY AUTO_INCREMENT,
+                          product_id INT NOT NULL,
+                          user_id INT NOT NULL,
+                          content TEXT NOT NULL,
+                          rating DECIMAL(2,1) NOT NULL,
+                          images VARCHAR(1000),
+                          create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          status TINYINT NOT NULL DEFAULT 1 COMMENT '0-待审核 1-已发布 2-已删除',
+                          CONSTRAINT fk_comments_product FOREIGN KEY (product_id) REFERENCES products(id),
+                          CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(userid)
+);
+
+-- 评论回复表
+CREATE TABLE comment_replies (
+                                 id INT PRIMARY KEY AUTO_INCREMENT,
+                                 comment_id INT NOT NULL,
+                                 user_id INT NOT NULL,
+                                 reply_to_user_id INT,
+                                 content TEXT NOT NULL,
+                                 create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                 update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                 status TINYINT NOT NULL DEFAULT 1 COMMENT '0-待审核 1-已发布 2-已删除',
+                                 CONSTRAINT fk_replies_comment FOREIGN KEY (comment_id) REFERENCES comments(id),
+                                 CONSTRAINT fk_replies_user FOREIGN KEY (user_id) REFERENCES users(userid),
+                                 CONSTRAINT fk_replies_reply_user FOREIGN KEY (reply_to_user_id) REFERENCES users(userid)
+);
+
+-- 插入评论数据
+INSERT INTO comments (product_id, user_id, content, rating, images, create_time, status) VALUES
+-- 深入理解Java虚拟机的评论
+(1, 1, '这本书非常详细地解释了JVM的工作原理，是Java开发者必备的参考书。', 5.0, 'https://example.com/comment_imgs/img1.jpg,https://example.com/comment_imgs/img2.jpg', '2023-10-15 10:30:00', 1),
+(1, 2, '内容很丰富，但有些章节理解起来比较困难，需要反复阅读。', 4.0, 'https://example.com/comment_imgs/img3.jpg', '2023-10-20 15:45:00', 1),
+(1, 3, '买来学习JVM调优的，确实讲解得很透彻。', 4.5, NULL, '2023-11-05 09:20:00', 1),
+
+-- 代码整洁之道的评论
+(2, 1, '改变了我写代码的方式，强烈推荐每个程序员阅读！', 5.0, NULL, '2023-09-10 14:25:00', 1),
+(2, 4, '很实用的编程建议，但有些原则在实际项目中难以严格执行。', 4.0, 'https://example.com/comment_imgs/img4.jpg', '2023-09-25 11:30:00', 1),
+
+-- Spring实战的评论
+(3, 5, '通俗易懂，案例丰富，非常适合Spring入门和进阶。', 5.0, NULL, '2023-10-05 16:40:00', 1),
+(3, 2, '内容有点过时了，希望能更新一版涵盖最新的Spring功能。', 3.5, NULL, '2023-10-12 13:15:00', 1),
+(3, 6, '作为Spring框架的参考书很不错，但是部分代码示例有误。', 4.0, 'https://example.com/comment_imgs/img5.jpg,https://example.com/comment_imgs/img6.jpg', '2023-11-01 17:50:00', 1),
+
+-- 百年孤独的评论
+(4, 3, '文学巨著，晦涩但值得细细品味。', 4.5, NULL, '2023-08-20 10:10:00', 1),
+(4, 7, '情节复杂，人物众多，初读有些混乱，需要耐心。', 4.0, NULL, '2023-09-15 12:30:00', 1),
+
+-- 小王子的评论
+(5, 8, '小时候看是童话，长大后看是人生，永远的经典。', 5.0, 'https://example.com/comment_imgs/img7.jpg', '2023-10-25 18:20:00', 1);
+
+-- 插入评论回复数据
+INSERT INTO comment_replies (comment_id, user_id, reply_to_user_id, content, create_time, status) VALUES
+-- 回复第一条评论
+(1, 2, 1, '同意你的观点，这本书对深入理解JVM非常有帮助！', '2023-10-15 11:45:00', 1),
+(1, 3, 1, '你对书中的GC部分有什么看法？我觉得那部分写得特别好。', '2023-10-16 09:30:00', 1),
+(1, 5, 3, '我也认为GC部分讲得很透彻，尤其是ZGC的解析。', '2023-10-16 10:15:00', 1),
+
+-- 回复第四条评论
+(4, 3, 1, '我也被这本书深深影响，改变了很多不良的编码习惯。', '2023-09-11 16:20:00', 1),
+(4, 6, 3, '你能分享一下具体哪些编码习惯被改变了吗？', '2023-09-12 08:45:00', 1),
+(4, 3, 6, '主要是命名规范和函数长度控制，以及更注重代码可读性。', '2023-09-12 09:30:00', 1),
+
+-- 回复第六条评论
+(6, 7, 5, '我也觉得这本书讲解Spring很清晰，特别适合入门。', '2023-10-06 10:25:00', 1),
+(6, 4, 7, '你是如何结合实际项目学习的？有什么建议？', '2023-10-07 14:50:00', 1),
+
+-- 回复第十条评论
+(10, 6, 8, '小王子确实是本值得反复阅读的书，每个年龄段都有不同感悟。', '2023-10-26 09:15:00', 1),
+(10, 9, 6, '最喜欢书中"只有用心才能看清楚"那句话，很有哲理。', '2023-10-27 11:30:00', 1);
+
+
+
+
 -- id主键索引已存在，需检查product_id是否建索引
 CREATE INDEX idx_product_id ON advertisements (product_id);
+
+
+SELECT COUNT(*) FROM comments WHERE product_id = 1 AND status = 1;
