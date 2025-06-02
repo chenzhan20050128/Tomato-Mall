@@ -202,7 +202,8 @@ const openLinkInNewWindow = (url: string): void => {
     console.log('打开链接:', url)
     // 使用_blank确保在新标签页打开
     window.open(url, '_blank', 'noopener,noreferrer');
-  }
+    
+  } 
 }
 
 onMounted(() => {
@@ -334,8 +335,8 @@ watch([
   position: absolute;
   bottom: 70px;
   right: 0;
-  width: 350px;
-  height: 500px;
+  width: 550px;
+  height: 700px;
   background-color: white;
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
