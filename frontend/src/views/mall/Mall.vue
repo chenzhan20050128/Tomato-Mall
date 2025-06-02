@@ -451,6 +451,8 @@ onMounted(() => {
                 :src="product.cover" 
                 :alt="product.title"
                 @error="handleImageError"
+                referrerpolicy="no-referrer"
+                rossorigin="anonymous"
                 :style="{ viewTransitionName: `product-image-${product.id}` }"
               >
               <div class="product-overlay" v-if="product.isAvailable">
