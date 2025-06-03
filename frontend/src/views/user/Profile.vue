@@ -3,11 +3,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getUserInfo, updateUserInfo } from "../../api/user.ts"
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { User, Lock, Message, Phone, Location, Edit } from '@element-plus/icons-vue'
+import { User, Lock, Message, Phone, Location, Edit, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const loading = ref(true)
 const isEditing = ref(false)
+const uploadLoading = ref(false) // 头像上传loading状态
 
 // 用户信息
 const userInfo = reactive({
@@ -28,8 +29,63 @@ const editForm = reactive({
   email: '',
   location: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  avatar: '' // 添加头像字段
 })
+
+// 头像上传处理
+const handleAvatarUpload = async (file: File) => {
+  // 检查文件类型
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!')
+    return false
+  }
+
+  // 检查文件大小 (限制为10MB)
+  const isLt2M = file.size / 1024 / 1024 < 10
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 10MB!')
+    return false
+  }
+
+  uploadLoading.value = true
+
+  try {
+    // 创建FormData对象
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const token = sessionStorage.getItem('token')
+    
+
+    // 调用上传接口
+    const response = await fetch('http://localhost:8080/upload', {
+      method: 'POST',
+      headers: {
+        'token': `Bearer ${sessionStorage.getItem('token')}`
+      },
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (result.code === '200') {
+      // 上传成功，更新头像
+      editForm.avatar = result.data
+      ElMessage.success('头像上传成功!')
+    } else {
+      ElMessage.error(result.msg || '头像上传失败')
+    }
+  } catch (error) {
+    console.error('头像上传错误:', error)
+    ElMessage.error('头像上传失败，请稍后重试')
+  } finally {
+    uploadLoading.value = false
+  }
+
+  return false // 阻止element-plus的默认上传行为
+}
 
 // 获取用户信息
 const fetchUserInfo = async () => {
@@ -61,6 +117,7 @@ const fetchUserInfo = async () => {
       editForm.telephone = userData.telephone
       editForm.email = userData.email
       editForm.location = userData.location
+      editForm.avatar = userData.avatar // 初始化头像
     } else {
       ElMessage.error(response.data.msg || '获取用户信息失败')
       if (response.data.code === '401') {
@@ -87,6 +144,7 @@ const cancelEdit = () => {
   editForm.telephone = userInfo.telephone
   editForm.email = userInfo.email
   editForm.location = userInfo.location
+  editForm.avatar = userInfo.avatar // 恢复原头像
   editForm.password = ''
   editForm.confirmPassword = ''
 }
@@ -131,13 +189,15 @@ const saveProfile = async () => {
       telephone: string;
       email: string;
       location: string;
+      avatar: string; // 添加头像字段
       password?: string;
     } = {
       username: editForm.username,
       name: editForm.name,
       telephone: editForm.telephone,
       email: editForm.email,
-      location: editForm.location
+      location: editForm.location,
+      avatar: editForm.avatar // 包含头像更新
     }
 
     // 如果有输入密码，则添加
@@ -153,6 +213,7 @@ const saveProfile = async () => {
       userInfo.telephone = editForm.telephone
       userInfo.email = editForm.email
       userInfo.location = editForm.location
+      userInfo.avatar = editForm.avatar // 更新用户信息中的头像
       isEditing.value = false
       
       // 清空密码字段
@@ -208,7 +269,10 @@ onMounted(fetchUserInfo)
             <el-avatar 
               :size="100" 
               :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
-            />
+              fit="cover"
+            >
+              <el-icon><User /></el-icon>
+            </el-avatar>
           </div>
           
           <div class="info-section">
@@ -259,10 +323,27 @@ onMounted(fetchUserInfo)
             <!-- 表单左侧的装饰元素 -->
             <div class="form-decoration">
               <div class="avatar-edit">
-                <el-avatar 
-                  :size="100" 
-                  :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
-                />
+                <!-- 头像上传组件 -->
+                <el-upload
+                  class="avatar-uploader"
+                  :show-file-list="false"
+                  :before-upload="handleAvatarUpload"
+                  accept="image/*"
+                >
+                  <div class="avatar-upload-container">
+                    <el-avatar 
+                      :size="100" 
+                      :src="editForm.avatar || userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                      fit="cover"
+                    >
+                      <el-icon><User /></el-icon>
+                    </el-avatar>
+                    <div class="avatar-upload-overlay" v-loading="uploadLoading">
+                      <el-icon class="upload-icon"><Plus /></el-icon>
+                      <span class="upload-text">点击上传</span>
+                    </div>
+                  </div>
+                </el-upload>
               </div>
               <div class="decoration-text">
                 <h3>更新个人信息</h3>
@@ -474,6 +555,54 @@ onMounted(fetchUserInfo)
   margin-bottom: 1rem;
 }
 
+/* 头像上传样式 */
+.avatar-uploader {
+  position: relative;
+  cursor: pointer;
+}
+
+.avatar-upload-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.avatar-upload-container:hover {
+  transform: scale(1.05);
+}
+
+.avatar-upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+}
+
+.avatar-upload-container:hover .avatar-upload-overlay {
+  opacity: 1;
+}
+
+.upload-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.upload-text {
+  font-size: 12px;
+}
+
 .decoration-text h3 {
   color: #e74c3c;
   margin-bottom: 0.5rem;
@@ -568,6 +697,15 @@ onMounted(fetchUserInfo)
   background-color: rgba(231, 76, 60, 0.1);
   border-color: rgba(231, 76, 60, 0.2);
   color: #e74c3c;
+}
+
+/* 头像上传相关样式 */
+:deep(.el-upload) {
+  border: none !important;
+  border-radius: 50% !important;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 
 /* 响应式调整 */

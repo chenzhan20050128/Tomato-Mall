@@ -359,7 +359,7 @@ const goToPayWithForm = (orderId: string | number) => {
     
     console.log('支付表单已提交到:', form.action)
     
-    // 跳转到商店页面
+    // 跳转到页面
     setTimeout(() => {
       router.push('/mall')
     }, 1500)
@@ -739,7 +739,7 @@ onMounted(() => {
               <div v-for="review in reviews" :key="review.id" class="review-item">
                 <div class="review-header">
                   <div class="review-user">
-                    <img :src="review.avatar" class="user-avatar" @error="handleImageError">
+                    <img :src="review.userAvatar" class="user-avatar" @error="handleImageError">
                     <div class="user-info">
                       <span class="username">{{ review.username }}</span>
                       <div class="review-rating">
