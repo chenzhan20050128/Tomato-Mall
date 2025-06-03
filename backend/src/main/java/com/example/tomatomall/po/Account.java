@@ -26,7 +26,7 @@ public class Account {
     private String username;
 
     @Column(length = 100, nullable = false)
-    @NotEmpty(message = "密码不能为空")
+    // @NotEmpty(message = "密码不能为空")
     private String password;
     // 注意：这个 password 字段仅用于接收前端传递的密码，Service层会处理加密存储，返回时不包含密码
 

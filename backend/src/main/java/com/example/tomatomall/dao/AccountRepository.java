@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AccountRepository extends JpaRepository<Account, String> { // String 是主键 username 的类型
+public interface AccountRepository extends JpaRepository<Account, Integer> { // String 是主键 username 的类型
     Account findByUserId(Integer userId);
 
     Account findByUsername(String username);
