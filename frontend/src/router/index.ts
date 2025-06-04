@@ -13,6 +13,8 @@ const Detail = () => import('../views/product/ProductDetail.vue')
 const Cart = () => import('../views/cart/Cart.vue')
 const Order = () => import('../views/order/Order.vue')
 const Pay = () => import('../views/payment/PaymentResult.vue')
+const Recommend = () => import('../views/recommend/Recommend.vue')
+const Default = () => import('../views/Default.vue')
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -76,7 +78,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '商品详情',
         }
-      },{
+      }, {
         path: '/cart',
         name: 'Cart',
         component: Cart,
@@ -94,12 +96,20 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true
         }
       },
-      // 在router配置文件中添加路由
       {
         path: '/payment-result',
         name: 'PaymentResult',
         component: Pay,
         meta: { requiresAuth: true }
+      },
+      {
+        path: '/recommend',
+        name: 'Recommend',
+        component: Recommend,
+        meta: {
+          title: '图书推荐',
+          requiresAuth: true
+        }
       }
     ]
   },
@@ -107,7 +117,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('../views/Default.vue'),
+    component: Default,
     meta: {
       title: '页面未找到',
       requiresAuth: false
@@ -125,7 +135,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 番茄读书商城` : '番茄读书商城'
-  
+
   // 需要登录权限的路由验证
   if (to.meta.requiresAuth) {
     const token = sessionStorage.getItem('token')

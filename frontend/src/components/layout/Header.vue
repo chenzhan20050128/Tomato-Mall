@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, inject, onMounted, onUnmounted,computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight, ShoppingBag, Document } from '@element-plus/icons-vue'
+import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight, ShoppingBag, Document, Star } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 // 导入获取购物车数据的API
 import { getCartItems } from '../../api/cart'
@@ -33,9 +33,9 @@ const needCollapseMenu = computed(() => {
 // 功能栏 - 修改为适合项目的导航项，添加商城入口
 const funcs = [
   { icon: House, title: '首页', path: '/home' },
-  { icon: ShoppingCart, title: '图书商城', path: '/mall' }
+  { icon: ShoppingCart, title: '图书商城', path: '/mall' },
+  { icon: Star, title: '图书推荐', path: '/recommend' }
 ]
-
 const currentPath = ref(route.path)
 
 // 获取购物车数量
