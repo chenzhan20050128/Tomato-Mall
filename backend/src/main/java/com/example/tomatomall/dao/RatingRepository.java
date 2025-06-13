@@ -25,9 +25,19 @@ public interface RatingRepository extends JpaRepository<Rating, Integer> {
             "GROUP BY r.product_id " +
             "ORDER BY avg_score DESC, rating_count DESC " +
             "LIMIT :limit", nativeQuery = true)
+
     List<Object[]> findTopRatedProducts(
             @Param("limit") int limit,
             @Param("category") String category);
+    @Query(value = "SELECT r.product_id, AVG(r.score) as avg_score, COUNT(*) as rating_count " +
+            "FROM ratings r " +
+            "JOIN products p ON r.product_id = p.id " +
+            "JOIN specifications s ON s.product_id = p.id " +
+            "GROUP BY r.product_id " +
+            "ORDER BY avg_score DESC, rating_count DESC " +
+            "LIMIT :limit", nativeQuery = true)
+    List<Object[]> findTopRatedProducts(
+            @Param("limit") int limit);
 
     /**
      * Find ratings by product ID

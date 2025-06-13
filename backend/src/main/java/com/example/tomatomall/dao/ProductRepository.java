@@ -34,7 +34,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
  // 修改后的方法 - 使用JOIN获取category
     @Query("SELECT spec.value FROM Product p JOIN p.specifications spec " +
-           "WHERE p.id = :productId AND LOWER(spec.item) = 'category'")
+           "WHERE p.id = :productId AND LOWER(spec.item) = '分类'")
     String findCategoryByProductId(@Param("productId") Integer productId);
     
     // 1. 修改畅销书查询
@@ -42,7 +42,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
         "FROM order_items oi " +
         "JOIN orders o ON oi.order_id = o.order_id " +
         "JOIN products p ON oi.product_id = p.id " +
-        "LEFT JOIN specifications s ON p.id = s.product_id AND s.item = 'category' " +
+        "LEFT JOIN specifications s ON p.id = s.product_id AND s.item = '分类' " +
         "WHERE o.create_time >= :startDate " +
         "AND (:category IS NULL OR s.value = :category) " +
         "GROUP BY oi.product_id " +
@@ -55,7 +55,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     
     // 修改类别列表查询
     @Query("SELECT DISTINCT p FROM Product p JOIN p.specifications spec " +
-           "WHERE spec.item = 'category' AND spec.value IN :categories")
+           "WHERE spec.item = '分类' AND spec.value IN :categories")
     List<Product> findByCategoryIn(@Param("categories") List<String> categories, Pageable pageable);
     
     // 随机查询可以保持不变
@@ -66,12 +66,11 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     
     // 修改用户历史类别查询
     @Query(value = "SELECT DISTINCT s.value " +
-           "FROM order_item oi " +
-           "JOIN orders o ON oi.order_id = o.id " +
+           "FROM order_items oi " +
+           "JOIN orders o ON oi.order_id = o.order_id " +
            "JOIN products p ON oi.product_id = p.id " +
-           "JOIN specifications s ON p.id = s.product_id AND LOWER(s.item) = 'category' " +
-           "WHERE o.user_id = :userId " +
-           "ORDER BY MAX(o.create_time) DESC", 
+           "JOIN specifications s ON p.id = s.product_id AND LOWER(s.item) = '分类' " +
+           "WHERE o.user_id = :userId ",
            nativeQuery = true)
     List<String> findCategoriesByUserOrderHistory(@Param("userId") Integer userId);
 

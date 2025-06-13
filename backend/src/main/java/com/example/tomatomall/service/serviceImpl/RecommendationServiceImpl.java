@@ -81,10 +81,16 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     // 修正评分榜实现
-    @Cacheable(value = "topRated", key = "#category")
+//    @Cacheable(value = "topRated", key = "#category")
     public List<ProductRankingDTO> getTopRated(String category, int limit) {
         // 1. 获取评分数据
-        List<Object[]> ratingData = ratingRepo.findTopRatedProducts(limit, category);
+        List <Object[]> ratingData = null;
+        if( category == null || category.isEmpty() || category.equals("null")) {
+            ratingData = ratingRepo.findTopRatedProducts(limit);
+        }else{
+            ratingData = ratingRepo.findTopRatedProducts(limit, category);
+
+        }
 
         // 2. 提取商品ID
         List<Integer> productIds = ratingData.stream()

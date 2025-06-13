@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
     }
 
 
+
     @ExceptionHandler(RedisConnectionFailureException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public Response<String> handleRedisConnectionException(RedisConnectionFailureException e) {

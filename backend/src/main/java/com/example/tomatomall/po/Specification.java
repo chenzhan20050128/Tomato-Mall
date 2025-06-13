@@ -12,8 +12,8 @@ public class Specification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String item;
-    private String value;
+    private String item;//”类别“ ”作者“ “页数”
+    private String value;//”文学“ ”余华 “
 
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)

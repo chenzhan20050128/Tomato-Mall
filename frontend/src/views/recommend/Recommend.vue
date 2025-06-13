@@ -42,14 +42,6 @@ onMounted(() => {
 
 <template>
     <div class="recommend-container">
-        <!-- 顶部导航栏 -->
-        <div class="recommend-header">
-            <h1 class="recommend-title">图书推荐</h1>
-            <p class="recommend-description">
-                {{recommendMenus.find(item => item.key === activeTab)?.description}}
-            </p>
-        </div>
-
         <!-- 导航菜单 -->
         <div class="recommend-tabs">
             <div class="tabs-container">

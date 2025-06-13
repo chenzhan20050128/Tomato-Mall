@@ -8,6 +8,39 @@ import { addToCart } from '../../api/cart'
 import { navigateWithTransition } from '../../utils/transition'
 import emitter from '../../utils/eventBus'
 
+// CLC分类映射
+const clcMapping = {
+  'A': '马克思主义、列宁主义、毛泽东思想、邓小平理论',
+  'B': '哲学、宗教',
+  'C': '社会科学总论',
+  'D': '政治、法律',
+  'E': '军事',
+  'F': '经济',
+  'G': '文化、科学、教育、体育',
+  'H': '语言、文字',
+  'I': '文学',
+  'I1': '世界文学',
+  'I2': '中国文学',
+  'J': '艺术',
+  'K': '历史、地理',
+  'N': '自然科学总论',
+  'O': '数理科学和化学',
+  'P': '天文学、地球科学',
+  'Q': '生物科学',
+  'R': '医药、卫生',
+  'S': '农业科学',
+  'T': '工业技术',
+  'TP': '计算机技术',
+  'U': '交通运输',
+  'V': '航空、航天',
+  'X': '环境科学、安全科学',
+  'Z': '综合性图书'
+}
+
+// 存储分类代码与名称的相互映射
+const categoryCodeToName = ref<Record<string, string>>({})
+const categoryNameToCode = ref<Record<string, string>>({})
+
 // 现有代码保持不变...
 const advertisements = ref([
   {
@@ -66,26 +99,21 @@ const navigateToProduct = (product: Product, event: Event) => {
 
 const extractCategories = (products: Product[]): string[] => {
   const categories = new Set<string>(['全部'])
-  
+  categoryCodeToName.value = {}
+  categoryNameToCode.value = {}
+
   products.forEach(product => {
-    const publisher = product.specifications?.find(s => s.item === '出版社')
-    if (publisher) {
-      categories.add(publisher.value)
-    }
-    
-    const subtitle = product.specifications?.find(s => s.item === '副标题')
-    if (subtitle) {
-      const value = subtitle.value.toLowerCase()
-      if (value.includes('编程') || value.includes('程序') || value.includes('开发')) {
-        categories.add('编程开发')
-      } else if (value.includes('设计') || value.includes('交互')) {
-        categories.add('设计')
-      } else if (value.includes('经验') || value.includes('实践')) {
-        categories.add('最佳实践')
-      }
+    const categorySpec = product.specifications?.find(s => s.item === '分类')
+    if (categorySpec) {
+      const categoryCode = categorySpec.value
+      const categoryName = clcMapping[categoryCode] || categoryCode
+
+      categories.add(categoryName)
+      categoryCodeToName.value[categoryCode] = categoryName
+      categoryNameToCode.value[categoryName] = categoryCode
     }
   })
-  
+
   return Array.from(categories)
 }
 
@@ -93,12 +121,12 @@ const categories = ref<string[]>(['全部'])
 
 const loadProducts = async () => {
   loading.value = true
-  
+
   try {
     const res = await getProductList()
-    if (res.data.code == 200) { 
+    if (res.data.code == 200) {
       products.value = res.data.data || []
-      
+
       products.value.forEach(product => {
         if (product.stock === undefined) {
           product.stock = 100
@@ -107,9 +135,9 @@ const loadProducts = async () => {
           product.isAvailable = true
         }
       })
-      
+
       categories.value = extractCategories(products.value)
-      
+
       // 重置分页
       currentPage.value = 1
     } else {
@@ -126,25 +154,25 @@ const loadProducts = async () => {
 // 修改：添加分页逻辑的商品筛选
 const filteredProducts = computed(() => {
   let result = [...products.value]
-  
+
   // 分类筛选
   if (activeCategory.value !== '全部') {
     result = result.filter(product => {
-      const publisher = product.specifications?.find(s => s.item === '出版社')
-      return publisher && publisher.value === activeCategory.value
+      const categorySpec = product.specifications?.find(s => s.item === '分类')
+      return categorySpec && categorySpec.value === categoryNameToCode.value[activeCategory.value]
     })
   }
-  
+
   // 关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(product => 
-      product.title.toLowerCase().includes(keyword) || 
+    result = result.filter(product =>
+      product.title.toLowerCase().includes(keyword) ||
       product.description.toLowerCase().includes(keyword) ||
       getAuthor(product).toLowerCase().includes(keyword)
     )
   }
-  
+
   // 排序
   switch (sortOption.value) {
     case 'priceAsc':
@@ -157,10 +185,10 @@ const filteredProducts = computed(() => {
       result.sort((a, b) => b.rate - a.rate)
       break
   }
-  
+
   // 更新总数
   totalProducts.value = result.length
-  
+
   return result
 })
 
@@ -176,7 +204,7 @@ const displayCategories = computed(() => {
   if (showAllCategories.value) {
     return categories.value
   }
-  
+
   const start = (categoryPage.value - 1) * categoryPageSize.value
   const end = start + categoryPageSize.value
   return categories.value.slice(start, end)
@@ -202,9 +230,9 @@ const changeCategory = (category: string) => {
 const handlePageChange = (page: number) => {
   currentPage.value = page
   // 滚动到商品列表顶部
-  document.querySelector('.products-card')?.scrollIntoView({ 
-    behavior: 'smooth', 
-    block: 'start' 
+  document.querySelector('.products-card')?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start'
   })
 }
 
@@ -231,15 +259,15 @@ const handleSearch = async () => {
     await loadProducts()
     return
   }
-  
+
   currentPage.value = 1 // 重置页码
-  
+
   loading.value = true
   try {
     const res = await searchProducts(searchKeyword.value)
     if (res.data.code == 200) {
       products.value = res.data.data || []
-      
+
       products.value.forEach(product => {
         if (product.stock === undefined) {
           product.stock = 100
@@ -262,13 +290,13 @@ const handleSearch = async () => {
 // 其他现有函数保持不变...
 const handleAddToCart = async (product: Product, event: Event) => {
   event.stopPropagation()
-  
+
   if (!sessionStorage.getItem('token')) {
     ElMessage.warning('请先登录')
     router.push('/login')
     return
   }
-  
+
   try {
     const res = await addToCart(product.id, 1)
     if (res.data.code == 200) {
@@ -309,17 +337,14 @@ onMounted(() => {
     <div class="hero-section">
       <h1 class="hero-title">番茄读书商城</h1>
       <p class="hero-subtitle">发现您的下一本心爱之书</p>
-      
+
       <!-- 搜索区域 -->
       <div class="search-container">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索书名、作者或描述..."
-          class="search-input"
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchKeyword" placeholder="搜索书名、作者或描述..." class="search-input" @keyup.enter="handleSearch">
           <template #prefix>
-            <el-icon><Search /></el-icon>
+            <el-icon>
+              <Search />
+            </el-icon>
           </template>
           <template #append>
             <el-button @click="handleSearch">搜索</el-button>
@@ -332,11 +357,8 @@ onMounted(() => {
     <div class="carousel-container">
       <el-carousel :interval="5000" type="card" height="300px">
         <el-carousel-item v-for="item in advertisements" :key="item.id">
-          <div 
-            class="carousel-content" 
-            :style="{ backgroundColor: item.backgroundColor }" 
-            @click="router.push(item.link)"
-          >
+          <div class="carousel-content" :style="{ backgroundColor: item.backgroundColor }"
+            @click="router.push(item.link)">
             <div class="carousel-text" :style="{ color: item.textColor }">
               <h2>{{ item.title }}</h2>
               <p>{{ item.description }}</p>
@@ -345,17 +367,14 @@ onMounted(() => {
               </el-button>
             </div>
             <div class="carousel-image">
-              <img 
-                :src="item.image" 
-                :alt="item.title" 
-                @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
-              />
+              <img :src="item.image" :alt="item.title"
+                @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
             </div>
           </div>
         </el-carousel-item>
       </el-carousel>
     </div>
-    
+
     <main class="content-section">
       <!-- 分类导航 -->
       <el-card class="category-card">
@@ -364,46 +383,35 @@ onMounted(() => {
           <div class="category-controls">
             <!-- 分类分页控制 -->
             <div v-if="!showAllCategories && totalCategoryPages > 1" class="category-pagination">
-              <el-button 
-                size="small" 
-                :disabled="categoryPage === 1"
-                @click="handleCategoryPageChange('prev')"
-              >
-                <el-icon><ArrowLeft /></el-icon>
+              <el-button size="small" :disabled="categoryPage === 1" @click="handleCategoryPageChange('prev')">
+                <el-icon>
+                  <ArrowLeft />
+                </el-icon>
               </el-button>
               <span class="page-info">{{ categoryPage }} / {{ totalCategoryPages }}</span>
-              <el-button 
-                size="small" 
-                :disabled="categoryPage === totalCategoryPages"
-                @click="handleCategoryPageChange('next')"
-              >
-                <el-icon><ArrowRight /></el-icon>
+              <el-button size="small" :disabled="categoryPage === totalCategoryPages"
+                @click="handleCategoryPageChange('next')">
+                <el-icon>
+                  <ArrowRight />
+                </el-icon>
               </el-button>
             </div>
-            
+
             <!-- 展开/收起按钮 -->
-            <el-button 
-              size="small" 
-              type="text" 
-              @click="toggleShowAllCategories"
-              v-if="categories.length > categoryPageSize"
-            >
+            <el-button size="small" type="text" @click="toggleShowAllCategories"
+              v-if="categories.length > categoryPageSize">
               {{ showAllCategories ? '收起' : `展开全部(${categories.length})` }}
             </el-button>
           </div>
         </div>
-        
+
         <div class="categories-wrapper">
-          <div 
-            v-for="category in displayCategories" 
-            :key="category"
-            :class="['category-item', { active: activeCategory === category }]"
-            @click="changeCategory(category)"
-          >
+          <div v-for="category in displayCategories" :key="category"
+            :class="['category-item', { active: activeCategory === category }]" @click="changeCategory(category)">
             {{ category }}
           </div>
         </div>
-        
+
         <!-- 排序选项 -->
         <div class="sort-wrapper">
           <el-select v-model="sortOption" class="sort-select" size="default">
@@ -414,7 +422,7 @@ onMounted(() => {
           </el-select>
         </div>
       </el-card>
-      
+
       <!-- 商品列表 -->
       <el-card class="products-card" v-loading="loading" element-loading-text="正在加载图书数据...">
         <!-- 商品数量统计 -->
@@ -429,49 +437,36 @@ onMounted(() => {
             </span>
           </span>
         </div>
-        
+
         <div v-if="paginatedProducts.length === 0 && !loading" class="empty-container">
           <el-empty description="没有找到符合条件的图书" />
         </div>
-        
+
         <div v-else class="products-grid">
-          <div 
-            v-for="product in paginatedProducts" 
-            :key="product.id" 
-            class="product-card" 
-            @click="(e) => navigateToProduct(product, e)"
-          >
+          <div v-for="product in paginatedProducts" :key="product.id" class="product-card"
+            @click="(e) => navigateToProduct(product, e)">
             <!-- 商品可用状态标签 -->
             <div v-if="!product.isAvailable" class="product-status-tag unavailable">
               暂无库存
             </div>
-            
+
             <div class="product-image">
-              <img 
-                :src="product.cover" 
-                :alt="product.title"
-                @error="handleImageError"
-                referrerpolicy="no-referrer"
-                rossorigin="anonymous"
-                :style="{ viewTransitionName: `product-image-${product.id}` }"
-              >
+              <img :src="product.cover" :alt="product.title" @error="handleImageError" referrerpolicy="no-referrer"
+                rossorigin="anonymous" :style="{ viewTransitionName: `product-image-${product.id}` }">
               <div class="product-overlay" v-if="product.isAvailable">
-                <el-button 
-                  type="primary" 
-                  size="small" 
-                  @click="(e) => handleAddToCart(product, e)" 
-                  class="cart-btn"
-                >
-                  <el-icon><ShoppingCart /></el-icon> 加入购物车
+                <el-button type="primary" size="small" @click="(e) => handleAddToCart(product, e)" class="cart-btn">
+                  <el-icon>
+                    <ShoppingCart />
+                  </el-icon> 加入购物车
                 </el-button>
               </div>
             </div>
-            
+
             <div class="product-info">
               <h3 class="product-title">{{ product.title }}</h3>
               <p class="product-author">{{ getAuthor(product) }}</p>
               <p class="product-description">{{ product.description }}</p>
-              
+
               <div class="product-footer">
                 <span class="product-price">{{ formatPrice(product.price) }}</span>
                 <div class="product-rating">
@@ -481,23 +476,17 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        
+
         <!-- 分页组件 -->
         <div v-if="totalPages > 1" class="pagination-container">
-          <el-pagination
-            v-model:current-page="currentPage"
-            :page-size="pageSize"
-            :total="totalProducts"
-            :page-sizes="[8, 12, 16, 24]"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="handlePageChange"
-            @size-change="(size) => { pageSize = size; currentPage = 1; }"
-            background
-          />
+          <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="totalProducts"
+            :page-sizes="[8, 12, 16, 24]" layout="total, sizes, prev, pager, next, jumper"
+            @current-change="handlePageChange" @size-change="(size) => { pageSize = size; currentPage = 1; }"
+            background />
         </div>
       </el-card>
     </main>
-    
+
     <footer class="mall-footer">
       <p>© 2025 番茄读书商城 - 南京大学软件工程与计算2</p>
     </footer>
@@ -587,7 +576,8 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 15px;
-  min-height: 40px; /* 防止布局跳动 */
+  min-height: 40px;
+  /* 防止布局跳动 */
 }
 
 .category-item {
@@ -645,7 +635,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
-  min-height: 300px; /* 确保分页时布局稳定 */
+  min-height: 300px;
+  /* 确保分页时布局稳定 */
 }
 
 /* 新增：分页样式 */
@@ -732,7 +723,8 @@ onMounted(() => {
   border-color: #e74c3c;
 }
 
-.cart-btn:hover, .cart-btn:focus {
+.cart-btn:hover,
+.cart-btn:focus {
   background-color: #c0392b;
   border-color: #c0392b;
 }
@@ -879,12 +871,12 @@ onMounted(() => {
   .content-section {
     padding: 1rem;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 15px;
   }
-  
+
   .product-image {
     height: 180px;
   }
@@ -893,15 +885,15 @@ onMounted(() => {
     padding: 0 1rem;
     margin-top: -30px;
   }
-  
+
   .carousel-text h2 {
     font-size: 22px;
   }
-  
+
   .carousel-text p {
     font-size: 16px;
   }
-  
+
   .carousel-image {
     display: none;
   }

@@ -1,16 +1,17 @@
 USE tomatomall;
 
 -- 删除已存在的表（注意删除顺序，先删除有外键引用的表）
-DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS stockpiles;
 DROP TABLE IF EXISTS specifications;
-DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS comment_replies;
+DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS carts_orders_relation;
 DROP TABLE IF EXISTS advertisements;
+DROP TABLE IF EXISTS products;
 
 CREATE TABLE users (
                        userid INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',

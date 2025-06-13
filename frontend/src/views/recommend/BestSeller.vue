@@ -25,7 +25,38 @@ interface ProductRanking {
     rank?: number  // 前端计算的排名
     isAvailable?: boolean  // 前端计算的可用性
 }
+// CLC分类映射
+const clcMapping = {
+    'A': '马克思主义、列宁主义、毛泽东思想、邓小平理论',
+    'B': '哲学、宗教',
+    'C': '社会科学总论',
+    'D': '政治、法律',
+    'E': '军事',
+    'F': '经济',
+    'G': '文化、科学、教育、体育',
+    'H': '语言、文字',
+    'I': '文学',
+    'I1': '世界文学',
+    'I2': '中国文学',
+    'J': '艺术',
+    'K': '历史、地理',
+    'N': '自然科学总论',
+    'O': '数理科学和化学',
+    'P': '天文学、地球科学',
+    'Q': '生物科学',
+    'R': '医药、卫生',
+    'S': '农业科学',
+    'T': '工业技术',
+    'TP': '计算机技术',
+    'U': '交通运输',
+    'V': '航空、航天',
+    'X': '环境科学、安全科学',
+    'Z': '综合性图书'
+}
 
+// 存储分类代码与名称的相互映射
+const categoryCodeToName = ref<Record<string, string>>({})
+const categoryNameToCode = ref<Record<string, string>>({})
 const router = useRouter()
 const loading = ref(false)
 const products = ref<ProductRanking[]>([])
@@ -60,7 +91,7 @@ const loadBestSellers = async () => {
     try {
         // 构建请求参数对象
         const params = {
-            category: activeCategory.value !== '全部' ? activeCategory.value : undefined,
+            category: activeCategory.value !== '全部' ? categoryNameToCode.value[activeCategory.value] : undefined,
             days: timePeriod.value,
             limit: displayLimit.value
         }
@@ -98,15 +129,49 @@ const loadBestSellers = async () => {
         loading.value = false
     }
 }
-// 从商品数据中提取分类
+// 从商品数据中提取分类，并确保所有CLC分类都显示
 const updateCategories = () => {
-    const categorySet = new Set<string>(['全部'])
+    // 先添加全部选项
+    const categoriesSet = new Set<string>(['全部'])
+    categoryCodeToName.value = {}
+    categoryNameToCode.value = {}
+
+    // 添加所有CLC分类，即使没有对应的书籍
+    for (const code in clcMapping) {
+        const name = clcMapping[code]
+        categoriesSet.add(name)
+        categoryCodeToName.value[code] = name
+        categoryNameToCode.value[name] = code
+    }
+
+    // 从商品中获取其他可能的分类
     products.value.forEach(product => {
         if (product.category) {
-            categorySet.add(product.category)
+            // 如果是分类代码，转换为名称
+            const categoryName = clcMapping[product.category] || product.category
+            categoriesSet.add(categoryName)
+
+            // 保存代码和名称的映射关系
+            if (!categoryCodeToName.value[product.category]) {
+                categoryCodeToName.value[product.category] = categoryName
+            }
+            if (!categoryNameToCode.value[categoryName]) {
+                categoryNameToCode.value[categoryName] = product.category
+            }
         }
     })
-    categories.value = Array.from(categorySet)
+
+    // 转换为数组并排序
+    categories.value = Array.from(categoriesSet).sort((a, b) => {
+        if (a === '全部') return -1
+        if (b === '全部') return 1
+
+        // 获取分类代码进行排序
+        const codeA = categoryNameToCode.value[a] || ''
+        const codeB = categoryNameToCode.value[b] || ''
+
+        return codeA.localeCompare(codeB)
+    })
 }
 
 // 处理分类筛选
@@ -133,14 +198,27 @@ const handleSearch = () => {
 
 // 过滤后的商品列表（本地搜索）
 const filteredProducts = computed(() => {
-    if (!searchKeyword.value) return products.value
+    let result = products.value
 
-    const keyword = searchKeyword.value.toLowerCase()
-    return products.value.filter(product =>
-        product.title.toLowerCase().includes(keyword) ||
-        product.description.toLowerCase().includes(keyword) ||
-        product.author.toLowerCase().includes(keyword)
-    )
+    // 分类筛选
+    if (activeCategory.value !== '全部') {
+        result = result.filter(product => {
+            const categoryCode = categoryNameToCode.value[activeCategory.value]
+            return product.category === categoryCode
+        })
+    }
+
+    // 关键词搜索
+    if (searchKeyword.value) {
+        const keyword = searchKeyword.value.toLowerCase()
+        result = result.filter(product =>
+            product.title.toLowerCase().includes(keyword) ||
+            product.description.toLowerCase().includes(keyword) ||
+            product.author.toLowerCase().includes(keyword)
+        )
+    }
+
+    return result
 })
 
 // 分页后的商品列表
@@ -251,6 +329,8 @@ const getSalesText = (count: number): string => {
 }
 
 onMounted(() => {
+    // 初始化所有分类
+    updateCategories()
     loadBestSellers()
 })
 </script>
@@ -280,63 +360,17 @@ onMounted(() => {
 
         <main class="content-section">
             <!-- 筛选选项 -->
-            <el-card class="filter-card">
-                <div class="categories-header">
-                    <h3>图书分类</h3>
-                    <div class="category-controls">
-                        <!-- 分类分页控制 -->
-                        <div v-if="!showAllCategories && totalCategoryPages > 1" class="category-pagination">
-                            <el-button size="small" :disabled="categoryPage === 1"
-                                @click="handleCategoryPageChange('prev')">
-                                <el-icon>
-                                    <ArrowLeft />
-                                </el-icon>
-                            </el-button>
-                            <span class="page-info">{{ categoryPage }} / {{ totalCategoryPages }}</span>
-                            <el-button size="small" :disabled="categoryPage === totalCategoryPages"
-                                @click="handleCategoryPageChange('next')">
-                                <el-icon>
-                                    <ArrowRight />
-                                </el-icon>
-                            </el-button>
-                        </div>
-
-                        <!-- 展开/收起按钮 -->
-                        <el-button size="small" type="text" @click="toggleShowAllCategories"
-                            v-if="categories.length > categoryPageSize">
-                            {{ showAllCategories ? '收起' : `展开全部(${categories.length})` }}
-                        </el-button>
-                    </div>
+            <div class="categories-header">
+                <h3>图书分类</h3>
+                <!-- 移除分页控制和展开/收起按钮 -->
+            </div>
+            <div class="categories-wrapper">
+                <div v-for="category in categories" :key="category"
+                    :class="['category-item', { active: activeCategory === category }]"
+                    @click="changeCategory(category)">
+                    {{ category }}
                 </div>
-
-                <div class="categories-wrapper">
-                    <div v-for="category in displayCategories" :key="category"
-                        :class="['category-item', { active: activeCategory === category }]"
-                        @click="changeCategory(category)">
-                        {{ category }}
-                    </div>
-                </div>
-
-                <!-- 时间周期选择 -->
-                <div class="time-filter">
-                    <span class="filter-label">时间范围：</span>
-                    <el-radio-group v-model="timePeriod" @change="handleTimePeriodChange">
-                        <el-radio-button v-for="option in timePeriodOptions" :key="option.value" :label="option.value">
-                            {{ option.label }}
-                        </el-radio-button>
-                    </el-radio-group>
-
-                    <div class="display-limit">
-                        <span class="filter-label">显示数量：</span>
-                        <el-select v-model="displayLimit" @change="loadBestSellers">
-                            <el-option :value="10" label="10本" />
-                            <el-option :value="20" label="20本" />
-                            <el-option :value="50" label="50本" />
-                            <el-option :value="100" label="100本" />
-                        </el-select>
-                    </div>
-                </div>
-            </el-card>
+            </div>
 
             <!-- 畅销书列表 -->
             <el-card class="bestseller-products" v-loading="loading" element-loading-text="正在加载畅销书数据...">
@@ -401,7 +435,7 @@ onMounted(() => {
                                     <div class="product-rating">
                                         <span class="rating-value">{{ product.averageScore?.toFixed(1) || '暂无' }}</span>
                                         <span class="rating-count" v-if="product.ratingCount">({{ product.ratingCount
-                                            }}人评分)</span>
+                                        }}人评分)</span>
                                     </div>
                                     <div class="product-sales">
                                         销量: <span>{{ getSalesText(product.sales) }}</span>
@@ -505,24 +539,42 @@ onMounted(() => {
     text-align: center;
 }
 
+/* 调整分类展示区样式 */
 .categories-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 15px;
-    min-height: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 15px;
+  min-height: 40px;
+  max-height: none; /* 移除高度限制 */
 }
 
 .category-item {
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-    background-color: #f5f7fa;
-    border: 1px solid #e0e0e0;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: #f5f7fa;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 8px; /* 添加底部间距 */
 }
 
+/* 如果分类过多，可以考虑减小每个分类项的字体和内边距 */
+@media (min-width: 768px) and (max-width: 1200px) {
+  .category-item {
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+}
+
+/* 在更小的屏幕上进一步调整 */
+@media (max-width: 767px) {
+  .category-item {
+    padding: 3px 10px;
+    font-size: 12px;
+  }
+}
 .category-item:hover {
     background-color: #f0f0f0;
 }
