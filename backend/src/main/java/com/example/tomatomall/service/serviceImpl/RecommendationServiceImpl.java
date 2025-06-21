@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -106,8 +107,9 @@ public class RecommendationServiceImpl implements RecommendationService {
         return ratingData.stream()
                 .map(data -> {
                     Integer productId = (Integer) data[0];
-                    Double avgScore = (Double) data[1];
-                    Long ratingCount = (Long) data[2];
+                    Double avgScore = ((BigDecimal) data[1]).doubleValue(); // 修复类型转换
+                    Number countNumber = (Number) data[2];
+                    Long ratingCount = countNumber.longValue();
                     Product product = products.get(productId);
 
                     return ProductRankingDTO.builder()
