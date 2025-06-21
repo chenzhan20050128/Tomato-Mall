@@ -33,3 +33,4 @@ public interface CommentRepository extends JpaRepository<Comment, Integer> {
     @Query("SELECT COUNT(c) FROM Comment c WHERE c.productId = :productId")
     long countByProductId(@Param("productId") Integer productId);
 }
+

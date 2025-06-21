@@ -26,31 +26,31 @@ interface ProductRanking {
 
 // CLC分类映射
 const clcMapping = {
-  'A': '马克思主义、列宁主义、毛泽东思想、邓小平理论',
+  // 'A': '马克思主义、列宁主义、毛泽东思想、邓小平理论',
   'B': '哲学、宗教',
   'C': '社会科学总论',
   'D': '政治、法律',
-  'E': '军事',
+  // 'E': '军事',
   'F': '经济',
   'G': '文化、科学、教育、体育',
-  'H': '语言、文字',
+  // 'H': '语言、文字',
   'I': '文学',
-  'I1': '世界文学',
-  'I2': '中国文学',
+  // 'I1': '世界文学',
+  // 'I2': '中国文学',
   'J': '艺术',
   'K': '历史、地理',
   'N': '自然科学总论',
   'O': '数理科学和化学',
   'P': '天文学、地球科学',
   'Q': '生物科学',
-  'R': '医药、卫生',
-  'S': '农业科学',
+  // 'R': '医药、卫生',
+  // 'S': '农业科学',
   'T': '工业技术',
   'TP': '计算机技术',
-  'U': '交通运输',
-  'V': '航空、航天',
-  'X': '环境科学、安全科学',
-  'Z': '综合性图书'
+  // 'U': '交通运输',
+  // 'V': '航空、航天',
+  // 'X': '环境科学、安全科学',
+  // 'Z': '综合性图书'
 }
 
 // 存储分类代码与名称的相互映射
@@ -372,7 +372,7 @@ onMounted(() => {
           :class="['category-item', { active: activeCategory === category }]" @click="changeCategory(category)">
           {{ category }}
         </div>
-      </div>>
+      </div>
 
       <!-- 评分榜列表 -->
       <el-card class="toprate-products" v-loading="loading" element-loading-text="正在加载评分榜数据...">
@@ -415,10 +415,7 @@ onMounted(() => {
               {{ product.averageScore.toFixed(1) }}
             </div>
 
-            <!-- 商品可用状态标签 -->
-            <div v-if="!product.isAvailable" class="product-status-tag unavailable">
-              暂无库存
-            </div>
+
 
             <div class="product-image">
               <img :src="product.cover" :alt="product.title" @error="handleImageError" referrerpolicy="no-referrer"
@@ -444,9 +441,6 @@ onMounted(() => {
                     <div class="rating-stars">{{ getRatingStars(product.averageScore) }}</div>
                     <span class="rating-value">{{ product.averageScore?.toFixed(1) || '暂无' }}</span>
                     <span class="rating-count" v-if="product.ratingCount">({{ product.ratingCount }}人评分)</span>
-                  </div>
-                  <div class="product-sales">
-                    销量: <span>{{ product.sales }}</span>
                   </div>
                 </div>
               </div>

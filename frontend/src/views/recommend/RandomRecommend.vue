@@ -280,10 +280,7 @@ onMounted(() => {
               {{ product.recommendReason }}
             </div>
             
-            <!-- 商品可用状态标签 -->
-            <div v-if="!product.isAvailable" class="product-status-tag unavailable">
-              暂无库存
-            </div>
+
             
             <div class="product-image">
               <img 
@@ -312,10 +309,6 @@ onMounted(() => {
               
               <div class="product-footer">
                 <span class="product-price">{{ formatPrice(product.price) }}</span>
-                <div class="product-rating">
-                  <div class="rating-stars">{{ getRatingStars(product.averageScore) }}</div>
-                  <span class="rating-value">{{ product.averageScore?.toFixed(1) || '暂无' }}</span>
-                </div>
               </div>
             </div>
           </div>

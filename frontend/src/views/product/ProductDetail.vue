@@ -612,7 +612,9 @@ onMounted(() => {
                   <div class="checkout-product-item">
                     <div class="checkout-product-info">
                       <div class="product-preview">
-                        <img :src="product.cover" :alt="product.title" class="product-preview-image" @error="handleImageError">
+                        <img :src="product.cover" :alt="product.title" class="product-preview-image" 
+     @error="handleImageError" 
+     style="width: 80px; height: 80px; object-fit: cover;">
                         <div class="product-preview-details">
                           <div class="checkout-product-title">{{ product.title }}</div>
                           <div class="checkout-product-price">¥{{ product.price.toFixed(2) }} × {{ quantity }}</div>
