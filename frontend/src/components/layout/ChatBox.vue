@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue'
-import { ChatDotRound, Close, ArrowUp } from '@element-plus/icons-vue'
+import { ChatDotRound, Close, ArrowUp , Service as Robot } from '@element-plus/icons-vue'
 import emitter from '../../utils/eventBus'
 import MarkdownIt from 'markdown-it'
 import { useRouter } from 'vue-router'
+// 导入图片路径
+
 
 // 创建Markdown渲染器
 const md = new MarkdownIt()
@@ -253,9 +255,16 @@ watch([
   <div class="chat-container" v-if="isLoggedIn">
     <!-- 悬浮按钮 -->
     <div class="chat-button" @click="toggleChat" :class="{ 'active': chatVisible }">
-      <el-icon :size="24" class="icon">
-        <component :is="chatVisible ? Close : ChatDotRound" />
-      </el-icon>
+      <template v-if="chatVisible">
+        <el-icon :size="32" class="icon">
+          <Close />
+        </el-icon>
+      </template>
+      <template v-else>
+        <!-- 直接使用相对路径 -->
+        <img src="../../assets/1234.png" class="chat-icon" alt="AI助手" />
+        <span class="button-text">AI助手</span>
+      </template>
     </div>
 
     <!-- 对话窗口 -->
@@ -299,6 +308,21 @@ watch([
 </template>
 
 <style scoped>
+
+.chat-icon {
+  width: 45px;  /* 调大图标宽度 */
+  height: 45px; /* 调大图标高度 */
+  object-fit: contain;
+  margin-bottom: 2px;
+}
+
+/* 相应调整文字大小，确保布局平衡 */
+.button-text {
+  font-size: 10px; /* 略微减小文字大小 */
+  color: white;
+  font-weight: bold;
+}
+
 .chat-container {
   position: fixed;
   right: 20px;
@@ -307,28 +331,46 @@ watch([
 }
 
 .chat-button {
-  width: 56px;
-  height: 56px;
+  width: 70px;        /* 增大尺寸 */
+  height: 70px;       /* 增大尺寸 */
   border-radius: 50%;
   background-color: #e74c3c;
   display: flex;
+  flex-direction: column;  /* 改为纵向排列 */
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);  /* 增强阴影效果 */
   cursor: pointer;
   transition: all 0.3s ease;
+  animation: pulse 1.5s infinite alternate;  /* 添加呼吸效果 */
+  position: relative;  /* 为标签定位 */
+}
+
+/* 添加呼吸动画 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
 }
 
 .chat-button:hover {
-  transform: scale(1.05);
+  transform: scale(1.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .chat-button.active {
   background-color: #c0392b;
+  animation: none;  /* 激活时取消动画 */
 }
 
 .chat-button .icon {
   color: white;
+  margin-bottom: 2px;
+}
+
+.button-text {
+  font-size: 12px;
+  color: white;
+  font-weight: bold;
 }
 
 .chat-window {
@@ -505,4 +547,6 @@ watch([
     right: -10px;
   }
 }
+
+
 </style>

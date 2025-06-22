@@ -7,6 +7,7 @@ import { getProductList, searchProducts, Product } from '../../api/mall'
 import { addToCart } from '../../api/cart'
 import { navigateWithTransition } from '../../utils/transition'
 import emitter from '../../utils/eventBus'
+import { axios as request } from '../../utils/request';
 
 // CLC分类映射
 const clcMapping = {
@@ -41,36 +42,71 @@ const clcMapping = {
 const categoryCodeToName = ref<Record<string, string>>({})
 const categoryNameToCode = ref<Record<string, string>>({})
 
-// 现有代码保持不变...
+// 修改广告为ref，不再使用常量
 const advertisements = ref([
   {
-    id: 1,
+    id: '1',
     title: '新书特惠',
     description: '精选新书5折起',
     image: 'https://picsum.photos/1200/300?random=1',
     backgroundColor: '#FCE4EC',
     textColor: '#880E4F',
-    link: '/promotions/new-books'
+    productId: '12345' // 示例商品ID
   },
   {
-    id: 2,
+    id: '2',
     title: '编程书籍专区',
     description: '领略代码的艺术',
     image: 'https://picsum.photos/1200/300?random=2',
     backgroundColor: '#E3F2FD',
     textColor: '#0D47A1',
-    link: '/category/programming'
+    productId: '67890' // 示例商品ID
   },
   {
-    id: 3,
+    id: '3',
     title: '会员专享折扣',
     description: '注册即享会员价',
     image: 'https://picsum.photos/1200/300?random=3',
     backgroundColor: '#F1F8E9',
     textColor: '#33691E',
-    link: '/membership'
+    productId: '11223' // 示例商品ID
   }
 ])
+
+// 定义广告样式映射（为不同序号的广告提供不同颜色）
+const adStyles = [
+  { backgroundColor: '#FCE4EC', textColor: '#880E4F' },
+  { backgroundColor: '#E3F2FD', textColor: '#0D47A1' },
+  { backgroundColor: '#F1F8E9', textColor: '#33691E' }
+]
+
+// 新增: 从后端获取广告数据
+const fetchAdvertisements = async () => {
+  try {
+    const response = await request.get('/api/advertisements')
+    console.log('获取广告列表:', response.data)
+    
+    if (response.data.code === '200' || parseInt(response.data.code) === 200) {
+      // 获取前三个广告
+      const ads = response.data.data?.slice(0, 3) || []
+      
+      // 将后端广告数据转换为前端所需格式
+      advertisements.value = ads.map((ad, index) => {
+        return {
+          id: ad.id,
+          title: ad.title,
+          description: ad.content,  // 将content映射为description
+          image: ad.imgUrl,         // 将imgUrl映射为image
+          backgroundColor: adStyles[index % adStyles.length].backgroundColor,
+          textColor: adStyles[index % adStyles.length].textColor,
+          productId: ad.productId   // 保留关联商品ID
+        }
+      })
+    }
+  } catch (error) {
+    console.error('获取广告列表失败:', error)
+  }
+}
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -88,6 +124,18 @@ const totalProducts = ref(0)
 const categoryPage = ref(1)
 const categoryPageSize = ref(8) // 每页显示8个分类标签
 const showAllCategories = ref(false)
+
+const navigateToAdvertisedProduct = (productId: string | undefined, event: Event) => {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!productId) {
+    ElMessage.info('此广告未关联商品')
+    return
+  }
+  
+  navigateWithTransition(router, `/product/${productId}`, 'product')
+}
 
 // 现有函数保持不变...
 const navigateToProduct = (product: Product, event: Event) => {
@@ -328,6 +376,7 @@ const getAuthor = (product: Product): string => {
 
 onMounted(() => {
   loadProducts()
+  fetchAdvertisements()
 })
 </script>
 
@@ -357,13 +406,21 @@ onMounted(() => {
     <div class="carousel-container">
       <el-carousel :interval="5000" type="card" height="300px">
         <el-carousel-item v-for="item in advertisements" :key="item.id">
-          <div class="carousel-content" :style="{ backgroundColor: item.backgroundColor }"
-            @click="router.push(item.link)">
+          <div class="carousel-content" :style="{ backgroundColor: item.backgroundColor }">
             <div class="carousel-text" :style="{ color: item.textColor }">
               <h2>{{ item.title }}</h2>
               <p>{{ item.description }}</p>
-              <el-button type="primary" size="small" class="carousel-btn">
+              <el-button 
+                type="primary" 
+                size="small" 
+                class="carousel-btn"
+                :disabled="!item.productId"
+                @click="(e) => navigateToAdvertisedProduct(item.productId, e)"
+              >
                 了解更多
+                <el-icon class="el-icon--right" v-if="item.productId">
+                  <ArrowRight />
+                </el-icon>
               </el-button>
             </div>
             <div class="carousel-image">

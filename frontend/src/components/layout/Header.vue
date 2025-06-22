@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, inject, onMounted, onUnmounted,computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight, ShoppingBag, Document, Star } from '@element-plus/icons-vue'
+import { House, ShoppingCart, User, UserFilled, Plus, SwitchButton, ArrowDown, ArrowRight, ShoppingBag, Document, Star , Picture} from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 // 导入获取购物车数据的API
 import { getCartItems } from '../../api/cart'
@@ -15,6 +15,7 @@ const route = useRoute()
 const isLoggedIn = ref(false)
 const username = ref('')
 const cartItemCount = ref(0) // 新增购物车数量变量
+const isAdmin = ref(false) // 新增管理员状态检查
 
 const isMenuOpen = ref(false)
 
@@ -91,8 +92,14 @@ watch(
 const checkLoginStatus = () => {
   const token = sessionStorage.getItem('token')
   const storedUsername = sessionStorage.getItem('username')
+
+  const userRole = sessionStorage.getItem('role')
+
   isLoggedIn.value = !!token
   username.value = storedUsername || ''
+
+  isAdmin.value = userRole === 'admin'
+  console.log(sessionStorage)
 }
 
 // 初始化时检查登录状态和购物车数量并监听更新事件
@@ -198,6 +205,19 @@ const handleLogout = () => {
 
           <!-- 登录状态下显示的菜单项 -->
           <template v-else>
+
+          <!-- 管理员商品管理入口 - 添加在广告管理前面 -->
+          <el-menu-item v-if="isAdmin" index="/productManagement" class="admin-ad-item">
+            <el-icon><ShoppingCart /></el-icon>
+            <span>商品管理</span>
+          </el-menu-item>      
+
+           <!-- 管理员广告管理入口 - 添加在购物车前面 -->
+            <el-menu-item v-if="isAdmin" index="/ads" class="admin-ad-item">
+              <el-icon><Picture /></el-icon>
+              <span>广告管理</span>
+            </el-menu-item>
+
             <!-- 购物车按钮 -->
             <el-menu-item index="/cart">
               <el-badge :value="cartItemCount" :hidden="cartItemCount === 0" class="cart-badge">
@@ -231,6 +251,19 @@ const handleLogout = () => {
 </template>
 
 <style scoped>
+.admin-ad-item {
+  color: #409EFF !important; /* 使用品牌蓝色突出显示 */
+}
+
+.admin-ad-item:hover {
+  color: #66b1ff !important;
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+.admin-ad-item :deep(.el-icon) {
+  color: #409EFF !important;
+}
+
 .el-header {
   --el-header-padding: 0;
   --el-header-height: 60px;

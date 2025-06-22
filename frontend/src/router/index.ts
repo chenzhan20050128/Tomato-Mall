@@ -15,6 +15,10 @@ const Order = () => import('../views/order/Order.vue')
 const Pay = () => import('../views/payment/PaymentResult.vue')
 const Recommend = () => import('../views/recommend/Recommend.vue')
 const Default = () => import('../views/Default.vue')
+const Ads = () => import('../views/ads/Ads.vue')
+const ProductManagement = () => import('../views/productManagement/ProductManagement.vue')
+
+
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
@@ -109,6 +113,25 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '图书推荐',
           requiresAuth: true
+        }
+      },
+      {
+        path: '/ads',
+        name: 'Ads',
+        component: Ads,
+        meta: {
+          title: '广告管理',
+          requiresAuth: true
+        }
+      },
+      {
+        path: '/productManagement',
+        name: 'ProductManagement',
+        component: ProductManagement,
+        meta: {
+          title: '商品管理',
+          requiresAuth: true,
+          isAdmin: true // 仅管理员可见
         }
       }
     ]
